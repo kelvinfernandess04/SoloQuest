@@ -23,7 +23,7 @@ pipeline {
                 script {
                     // Compila o projeto utilizando Maven
                     withEnv(["JAVA_HOME=${JAVA_HOME}", "MAVEN_HOME=${MAVEN_HOME}", "PATH+MAVEN=${MAVEN_HOME}/bin"]) {
-                        bat "${MAVEN_HOME}/bin/mvn clean install"
+                        bat "${MAVEN_HOME}/bin/mvn -f Solo-Quest/pom.xml clean install"
                     }
                 }
             }
