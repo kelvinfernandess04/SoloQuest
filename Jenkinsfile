@@ -41,6 +41,7 @@ pipeline {
                             ${scannerHome}/bin/sonar-scanner.bat \
                             -Dsonar.projectKey=SoloQuest \
                             -Dsonar.sources=. \
+                            -Dsonar.java.binaries=Solo-Quest/target/classes \
                             -Dsonar.host.url=http://localhost:9000 \
                             -Dsonar.login=${SONAR_TOKEN}
                         """

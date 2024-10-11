@@ -1,4 +1,4 @@
-package br.com.edu.cefsa.SoloQuest;
+package br.edu.cefsa.SoloQuest;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
