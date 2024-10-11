@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        GITHUB_CREDENTIALS = credentials('github-credentials')  // Credenciais do GitHub
+        GITHUB_CREDENTIALS = credentials('github-user')  // Credenciais do GitHub
         SONAR_TOKEN = credentials('sonar-token')  // Token do SonarQube
         JAVA_HOME = "C:/Program Files/Java/jdk-17"  // Caminho do JDK 17
         MAVEN_HOME = "C:/Users/kelvi/devtools/apache-maven-3.9.9"  // Caminho do Maven
