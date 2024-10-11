@@ -23,7 +23,7 @@ pipeline {
                 script {
                     // Compila o projeto utilizando Maven
                     withEnv(["JAVA_HOME=${JAVA_HOME}", "MAVEN_HOME=${MAVEN_HOME}", "PATH+MAVEN=${MAVEN_HOME}/bin"]) {
-                        bat "${MAVEN_HOME}/bin/mvn clean install"
+                        bat "${MAVEN_HOME}/bin/mvn -f Solo-Quest/pom.xml clean install"
                     }
                 }
             }
@@ -41,6 +41,7 @@ pipeline {
                             ${scannerHome}/bin/sonar-scanner.bat \
                             -Dsonar.projectKey=SoloQuest \
                             -Dsonar.sources=. \
+                            -Dsonar.java.binaries=Solo-Quest/target/classes \
                             -Dsonar.host.url=http://localhost:9000 \
                             -Dsonar.login=${SONAR_TOKEN}
                         """
