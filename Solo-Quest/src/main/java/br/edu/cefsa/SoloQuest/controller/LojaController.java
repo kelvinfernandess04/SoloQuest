@@ -1,8 +1,8 @@
-package br.cefsa.edu.SoloQuest.controller;
+package br.edu.cefsa.SoloQuest.controller;
 
-import br.cefsa.edu.SoloQuest.model.Loja;
-import br.cefsa.edu.SoloQuest.model.Equipamento;
-import br.cefsa.edu.SoloQuest.model.Usuario;
+import br.edu.cefsa.SoloQuest.model.Loja;
+import br.edu.cefsa.SoloQuest.model.Equipamento;
+import br.edu.cefsa.SoloQuest.model.Usuario;
 
 public class LojaController {
     private Loja loja;

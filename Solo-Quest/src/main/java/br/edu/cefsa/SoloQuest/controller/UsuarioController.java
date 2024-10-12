@@ -1,6 +1,6 @@
-package br.cefsa.edu.SoloQuest.controller;
+package br.edu.cefsa.SoloQuest.controller;
 
-import br.cefsa.edu.SoloQuest.model.Usuario;
+import br.edu.cefsa.SoloQuest.model.Usuario;
 
 public class UsuarioController {
     private Usuario usuario;

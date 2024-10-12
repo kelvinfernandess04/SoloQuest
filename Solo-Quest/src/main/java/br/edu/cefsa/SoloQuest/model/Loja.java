@@ -1,4 +1,4 @@
-package br.cefsa.edu.SoloQuest.model;
+package br.edu.cefsa.SoloQuest.model;
 
 import java.util.List;
 

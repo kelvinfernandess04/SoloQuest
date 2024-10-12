@@ -1,8 +1,8 @@
-package br.cefsa.edu.SoloQuest.controller;
+package br.edu.cefsa.SoloQuest.controller;
 
-import br.cefsa.edu.SoloQuest.model.Missao;
-import br.cefsa.edu.SoloQuest.model.MissaoDiaria;
-import br.cefsa.edu.SoloQuest.model.MissaoSecundaria;
+import br.edu.cefsa.SoloQuest.model.Missao;
+import br.edu.cefsa.SoloQuest.model.MissaoDiaria;
+import br.edu.cefsa.SoloQuest.model.MissaoSecundaria;
 
 public class MissaoController {
     // Métodos para criar missões

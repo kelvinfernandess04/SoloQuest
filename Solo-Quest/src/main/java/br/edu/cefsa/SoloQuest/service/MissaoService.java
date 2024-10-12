@@ -1,6 +1,6 @@
-package br.cefsa.edu.SoloQuest.service;
+package br.edu.cefsa.SoloQuest.service;
 
-import br.cefsa.edu.SoloQuest.model.Missao;
+import br.edu.cefsa.SoloQuest.model.Missao;
 
 public class MissaoService {
     public void completarMissao(Missao missao) {

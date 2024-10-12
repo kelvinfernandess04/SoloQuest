@@ -1,6 +1,6 @@
-package br.cefsa.edu.SoloQuest.controller;
+package br.edu.cefsa.SoloQuest.controller;
 
-import br.cefsa.edu.SoloQuest.model.Dungeon;
+import br.edu.cefsa.SoloQuest.model.Dungeon;
 
 public class DungeonController {
     private Dungeon dungeon;
