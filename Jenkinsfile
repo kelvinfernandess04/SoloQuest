@@ -15,7 +15,7 @@ pipeline {
             steps {
                 script {
                     withEnv(["JAVA_HOME=${JAVA_HOME}", "MAVEN_HOME=${MAVEN_HOME}", "PATH+MAVEN=${MAVEN_HOME}/bin"]) {
-                        bat "${MAVEN_HOME}/bin/mvn -f pom.xml clean install"
+                        bat "${MAVEN_HOME}/bin/mvn -f SoloQuest/pom.xml clean install"
                     }
                 }
             }
@@ -29,13 +29,12 @@ pipeline {
                             def scannerHome = tool name: 'sonarqube_scanner', type: 'hudson.plugins.sonar.SonarRunnerInstallation'
                             bat """
                                 "${scannerHome}/bin/sonar-scanner.bat" ^
-                                -Dsonar.projectKey=kelvinfernandess04_SoloQuest ^
+                                -Dsonar.projectKey=SoloQuest ^
                                 -Dsonar.organization=kelvinfernandess04 ^
                                 -Dsonar.sources=. ^
-                                -Dsonar.java.binaries=Solo-Quest/target/classes ^
+                                -Dsonar.java.binaries=SoloQuest/target/classes ^
                                 -Dsonar.host.url=https://sonarcloud.io ^
-                                -Dsonar.login=${SONAR_TOKEN}^
-                                -Dsonar.token=${SONAR_TOKEN}
+                                -Dsonar.login=${SONAR_TOKEN}
                             """
                         }
                     }
