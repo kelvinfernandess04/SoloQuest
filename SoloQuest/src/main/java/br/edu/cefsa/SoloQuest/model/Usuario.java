@@ -9,7 +9,7 @@ public class Usuario {
     private int gold;
     private int pontosDeVida;
     private int pontosDeMana;
-    private String password = "password";
+
     private int forca;
     private int inteligencia;
     private int vitalidade;
@@ -27,7 +27,7 @@ public class Usuario {
     public Long getId() {
         return id;
     }
-    public String password(String password){return password;}
+
     public String getNome() {
         return nome;
     }
