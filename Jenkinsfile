@@ -33,7 +33,7 @@ pipeline {
                         bat """
                             "${scannerHome}/bin/sonar-scanner.bat" ^
                             -Dsonar.projectKey=SoloQuest ^
-                            -Dsonar.organization=<your-organization> ^
+                            -Dsonar.organization=<kelvinfernandess04> ^
                             -Dsonar.sources=. ^
                             -Dsonar.java.binaries=Solo-Quest/target/classes ^
                             -Dsonar.host.url=https://sonarcloud.io ^
