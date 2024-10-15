@@ -9,7 +9,8 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git branch: '*/**', url: 'https://github.com/kelvinfernandess04/SoloQuest.git', credentialsId: 'GITHUB_CREDENTIALS'
+                // Checkout da branch em que o pipeline está rodando
+                git branch: "${env.BRANCH_NAME}", url: 'https://github.com/kelvinfernandess04/SoloQuest.git', credentialsId: 'GITHUB_CREDENTIALS'
             }
         }
         stage('Build with Maven') {
@@ -33,7 +34,7 @@ pipeline {
                                 "-Dsonar.organization=kelvinfernandess04 " +
                                 "-Dsonar.sources=. " +
                                 "-Dsonar.java.binaries=SoloQuest/target/classes " +
-                                "-Dsonar.branch.name=${env.GIT_BRANCH} " +  // Adiciona o nome da branch
+                                "-Dsonar.branch.name=${env.BRANCH_NAME} " +  // Nome da branch dinâmica
                                 "-Dsonar.host.url=https://sonarcloud.io " +
                                 "-Dsonar.login=${SONAR_TOKEN}"
                             )
