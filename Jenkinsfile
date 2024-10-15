@@ -29,7 +29,7 @@ pipeline {
                             def scannerHome = tool name: 'sonarqube_scanner', type: 'hudson.plugins.sonar.SonarRunnerInstallation'
                             bat """
                                 "${scannerHome}/bin/sonar-scanner.bat" ^
-                                -Dsonar.projectKey=SoloQuest ^
+                                -Dsonar.projectKey=kelvinfernandess04_SoloQuest ^
                                 -Dsonar.organization=kelvinfernandess04 ^
                                 -Dsonar.sources=. ^
                                 -Dsonar.java.binaries=Solo-Quest/target/classes ^
