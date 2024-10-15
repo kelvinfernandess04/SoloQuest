@@ -34,7 +34,8 @@ pipeline {
                                 -Dsonar.sources=. ^
                                 -Dsonar.java.binaries=Solo-Quest/target/classes ^
                                 -Dsonar.host.url=https://sonarcloud.io ^
-                                -Dsonar.login=${SONAR_TOKEN}
+                                -Dsonar.login=${SONAR_TOKEN}^
+                                -Dsonar.token=${SONAR_TOKEN}
                             """
                         }
                     }

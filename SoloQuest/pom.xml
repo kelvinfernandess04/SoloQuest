@@ -9,9 +9,9 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>br.com.edu.cefsa</groupId>
-    <artifactId>Solo-Quest</artifactId>
+    <artifactId>SoloQuest</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>Solo-Quest</name>
+    <name>SoloQuest</name>
     <description>PBL Spring Boot Project</description>
     <url/>
     <licenses>
