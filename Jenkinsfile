@@ -9,7 +9,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/kelvinfernandess04/SoloQuest.git', credentialsId: 'GITHUB_CREDENTIALS'
+                git branch: '*/**', url: 'https://github.com/kelvinfernandess04/SoloQuest.git', credentialsId: 'GITHUB_CREDENTIALS'
             }
         }
         stage('Build with Maven') {
@@ -33,6 +33,7 @@ pipeline {
                                 "-Dsonar.organization=kelvinfernandess04 " +
                                 "-Dsonar.sources=. " +
                                 "-Dsonar.java.binaries=SoloQuest/target/classes " +
+                                "-Dsonar.branch.name=${env.GIT_BRANCH} " +  // Adiciona o nome da branch
                                 "-Dsonar.host.url=https://sonarcloud.io " +
                                 "-Dsonar.login=${SONAR_TOKEN}"
                             )
