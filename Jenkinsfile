@@ -15,7 +15,7 @@ pipeline {
             steps {
                 script {
                     withEnv(["JAVA_HOME=${JAVA_HOME}", "MAVEN_HOME=${MAVEN_HOME}", "PATH+MAVEN=${MAVEN_HOME}/bin"]) {
-                        bat "${MAVEN_HOME}/bin/mvn -f SoloQuest\pom.xml clean install"
+                        bat "${MAVEN_HOME}/bin/mvn -f SoloQuest/SoloQuest/pom.xml clean install"
                     }
                 }
             }
