@@ -1,0 +1,34 @@
+soloquest/
+├── src/                    # Código-fonte do projeto
+│   ├── api/                # Integrações com APIs (backend, serviços externos)
+│   │   └── taskService.ts  # Serviço para gerenciar tarefas (API mockada ou backend)
+│   ├── components/         # Componentes reutilizáveis (UI)
+│   │   ├── TaskItem.tsx    # Componente para exibir uma tarefa
+│   │   ├── AttributeBar.tsx # Componente para exibir barras de atributos
+│   │   └── RewardBadge.tsx  # Componente para exibir recompensas
+│   ├── constants/          # Constantes do projeto
+│   │   ├── colors.ts       # Cores do tema
+│   │   └── tasks.ts        # Constantes relacionadas a tarefas (ex: dificuldades)
+│   ├── contexts/           # Contextos do React (gerenciamento de estado global)
+│   │   └── TaskContext.tsx # Contexto para gerenciar tarefas
+│   ├── hooks/              # Hooks customizados
+│   │   └── useTasks.ts     # Hook para gerenciar tarefas
+│   ├── navigation/         # Configurações de navegação (React Navigation)
+│   │   └── AppNavigator.tsx # Navegação principal do app
+│   ├── screens/            # Telas do aplicativo
+│   │   ├── HomeScreen.tsx  # Tela inicial (lista de tarefas)
+│   │   ├── TaskDetailScreen.tsx # Tela de detalhes da tarefa
+│   │   └── ProfileScreen.tsx # Tela de perfil (atributos do personagem)
+│   ├── services/           # Serviços (lógica de negócio)
+│   │   ├── TaskService.ts  # Lógica para criar, atualizar e concluir tarefas
+│   │   ├── RewardService.ts # Lógica para gerenciar recompensas
+│   │   └── AttributeService.ts # Lógica para calcular atributos
+│   ├── types/              # Tipos TypeScript
+│   │   ├── Task.ts         # Interface para tarefas
+│   │   ├── Reward.ts       # Interface para recompensas
+│   │   └── Attribute.ts    # Interface para atributos
+│   ├── utils/              # Utilitários
+│   │   ├── dateUtils.ts    # Funções para manipulação de datas
+│   │   └── rewardUtils.ts  # Funções para calcular recompensas
+│   └── App.tsx             # Ponto de entrada do aplicativo
+└── TODO         # Controle das atividades do projeto
