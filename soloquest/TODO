@@ -10,9 +10,19 @@ soloquest/
 │   │   ├── colors.ts       # Cores do tema
 │   │   └── tasks.ts        # Constantes relacionadas a tarefas (ex: dificuldades)
 │   ├── contexts/           # Contextos do React (gerenciamento de estado global)
-│   │   └── TaskContext.tsx # Contexto para gerenciar tarefas
+│   │   └── GameContext.tsx # Contexto para gerenciar tarefas
 │   ├── hooks/              # Hooks customizados
 │   │   └── useTasks.ts     # Hook para gerenciar tarefas
+│   ├── models/              # 📌 Adicionado: para classes de domínio
+│   │   ├── Task.ts
+│   │   ├── Attribute.ts
+│   │   ├── Reward.ts
+│   │   ├── User.ts
+│   │   ├── Inventory.ts
+│   │   ├── Equipment.ts
+│   │   ├── Skill.ts
+│   │   ├── Rank.ts
+│   │   └── Customization.ts
 │   ├── navigation/         # Configurações de navegação (React Navigation)
 │   │   └── AppNavigator.tsx # Navegação principal do app
 │   ├── screens/            # Telas do aplicativo
@@ -21,7 +31,9 @@ soloquest/
 │   │   └── ProfileScreen.tsx # Tela de perfil (atributos do personagem)
 │   ├── services/           # Serviços (lógica de negócio)
 │   │   ├── TaskService.ts  # Lógica para criar, atualizar e concluir tarefas
-│   │   ├── RewardService.ts # Lógica para gerenciar recompensas
+│   │   ├── InventoryService.ts  # Serviço para gerenciar inventário
+│   │   ├── SkillService.ts      # Serviço para gerenciar habilidades
+│   │   ├── ShopService.ts       # Serviço para compras e economia
 │   │   └── AttributeService.ts # Lógica para calcular atributos
 │   ├── types/              # Tipos TypeScript
 │   │   ├── Task.ts         # Interface para tarefas
