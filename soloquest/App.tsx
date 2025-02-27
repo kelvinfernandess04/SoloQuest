@@ -10,7 +10,7 @@ export default function App() {
       source={require('./assets/background.jpg')}
       style={GlobalStyle.backgroundImage}
     >
-      <Login />
+      <Login navigation={undefined} />
       <StatusBar style="auto" />
     </ImageBackground>
   );

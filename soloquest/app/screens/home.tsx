@@ -6,7 +6,7 @@ import { GlobalStyle } from '../styles/GlobalStyles';
 export default function Home() {
   return (
     <ImageBackground
-      source={require('./assets/background.jpg')}
+    source={require('../../assets/background.jpg')}
       style={GlobalStyle.backgroundImage}
     >
       <View style={GlobalStyle.container}>
