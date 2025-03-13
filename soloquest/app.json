@@ -5,13 +5,19 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": false,
+    "plugins": ["expo-router"],
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    "fonts": [
+      "./assets/fonts/Cinzel-Bold.ttf",
+      "./assets/fonts/Orbitron-SemiBold.ttf",
+      "./assets/fonts/Exo2-Regular.ttf"
+    ],
     "ios": {
       "supportsTablet": true
     },
