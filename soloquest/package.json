@@ -9,15 +9,16 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "depcheck": "^1.4.7",
     "expo": "~52.0.41",
     "expo-linking": "^7.0.5",
     "expo-router": "^4.0.19",
+    "expo-sqlite": "~15.1.3",
     "expo-status-bar": "~2.0.1",
     "react": "18.3.1",
     "react-native": "0.76.7",
     "react-native-safe-area-context": "^5.3.0",
     "react-native-screens": "^4.9.2",
-    "check-deps": "depcheck",
     "soloquest": "file:"
   },
   "devDependencies": {
