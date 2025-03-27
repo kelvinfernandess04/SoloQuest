@@ -1,23 +1,18 @@
 {
   "expo": {
     "name": "SoloQuest",
+    "entryPoint": "./.expo/.entry",
     "slug": "SoloQuest",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "dark",
-    "newArchEnabled": false,
-    "plugins": ["expo-router"],
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "fonts": [
-      "./assets/fonts/Cinzel-Bold.ttf",
-      "./assets/fonts/Orbitron-SemiBold.ttf",
-      "./assets/fonts/Exo2-Regular.ttf"
-    ],
     "ios": {
       "supportsTablet": true
     },
