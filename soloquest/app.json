@@ -1,6 +1,7 @@
 {
   "expo": {
     "name": "SoloQuest",
+    "scheme": "soloquest",
     "entryPoint": "./.expo/.entry",
     "slug": "SoloQuest",
     "version": "1.0.0",

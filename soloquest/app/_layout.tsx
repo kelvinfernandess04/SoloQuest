@@ -22,7 +22,7 @@ export default function Layout() {
         <Stack.Screen name="index" />
         <Stack.Screen name="create" />
         <Stack.Screen name="attributes" />
-        <Stack.Screen name="rewards" />
+        <Stack.Screen name="store" />
       </Stack>
 
       {/* Barra de navegação inferior */}
@@ -54,13 +54,13 @@ export default function Layout() {
 
           <TouchableOpacity 
             style={GlobalStyle.navButton}
-            onPress={() => router.push('/rewards')}
+            onPress={() => router.push('/store')}
           >
             <Text style={[
               GlobalStyle.navText,
-              segments[0] === 'rewards' && { color: '#FF4655' }
+              segments[0] === 'store' && { color: '#FF4655' }
             ]}>
-              💎 Rewards
+              💎 Store
             </Text>
           </TouchableOpacity>
         </View>

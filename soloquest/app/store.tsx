@@ -2,13 +2,13 @@ import React from 'react';
 import { View, Text, FlatList } from 'react-native';
 import { GlobalStyle } from '../styles/GlobalStyles';
 
-const rewards = [
+const store = [
   { type: '💰', amount: 1500, reason: 'Missão Diária Completa' },
   { type: '✨', amount: 500, reason: 'Dungeon: Portal das Sombras' },
   { type: '💎', amount: 1, reason: 'Item Raro: Cristal Arcano' },
 ];
 
-export default function Rewards() {
+export default function Store() {
   return (
     <View style={GlobalStyle.container}>
       <Text style={GlobalStyle.titulo}>Tesouro do Caçador</Text>
@@ -24,7 +24,7 @@ export default function Rewards() {
       </View>
 
       <FlatList
-        data={rewards}
+        data={store}
         renderItem={({ item }) => (
           <View style={GlobalStyle.rewardCard}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
