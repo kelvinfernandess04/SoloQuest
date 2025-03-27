@@ -1,41 +1,61 @@
-import React from 'react';
-import { View, Text, FlatList, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, FlatList, TouchableOpacity, Alert } from 'react-native';
 import { GlobalStyle } from '../styles/GlobalStyles';
 import { useRouter } from 'expo-router';
+import * as DbService from '../services/dbservice';
 
-const tasks = [
-  { 
-    id: '1', 
-    title: 'Treinar no Duplo Dungeon', 
-    category: 'Dungeon', 
-    progress: 60,
-    description: 'Derrotar 20 inimigos de nível B+'
-  },
-  { 
-    id: '2', 
-    title: 'Estudar Mana Control', 
-    category: 'Diária', 
-    progress: 100,
-    description: 'Praticar controle de energia por 2h'
-  },
-  { 
-    id: '3', 
-    title: 'Caçar Orcs das Sombras', 
-    category: 'Dungeon', 
-    progress: 30,
-    description: 'Limpar dungeon do pântano negro'
-  },
-];
+interface Quest {
+  id: string;
+  name: string;
+  description: string;
+}
 
 export default function Home() {
   const router = useRouter();
+  const [quests, setQuests] = useState<Quest[]>([]);
+
+  useEffect(() => {
+    const loadQuests = async () => {
+      try {
+        await DbService.createTable();
+        const loadedQuests = await DbService.readQuest();
+        setQuests(loadedQuests);
+      } catch (error) {
+        Alert.alert('Erro', 'Falha ao carregar missões');
+        console.error(error);
+      }
+    };
+    loadQuests();
+  }, []);
+
+  const handleDelete = (id: string) => {
+    Alert.alert('Confirmação', 'Deseja realmente excluir esta missão?', [
+      {
+        text: 'Cancelar',
+        style: 'cancel',
+      },
+      {
+        text: 'Excluir',
+        onPress: async () => {
+          try {
+            const success = await DbService.deleteQuest(id);
+            if (success) {
+              const updatedQuests = await DbService.readQuest();
+              setQuests(updatedQuests);
+            }
+          } catch (error) {
+            Alert.alert('Erro', 'Falha ao excluir missão');
+            console.error(error);
+          }
+        },
+      },
+    ]);
+  };
 
   return (
     <View style={GlobalStyle.container}>
-      {/* Header Customizado */}
       <View style={GlobalStyle.headerContainer}>
         <Text style={[GlobalStyle.titulo, { marginBottom: 10 }]}>Quests</Text>
-
         <TouchableOpacity
           style={[GlobalStyle.headerButton, {
             paddingVertical: 8,
@@ -55,7 +75,7 @@ export default function Home() {
       </View>
 
       <FlatList
-        data={tasks}
+        data={quests}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingBottom: 90 }}
         renderItem={({ item }) => (
@@ -64,76 +84,46 @@ export default function Home() {
             position: 'relative',
             marginBottom: 16
           }]}>
-            <View style={[GlobalStyle.categoryTag, {
-              backgroundColor: item.category === 'Dungeon' ? '#FF465520' : '#7C83FD20',
-              borderColor: item.category === 'Dungeon' ? '#FF4655' : '#7C83FD'
-            }]}>
-              <Text style={{ 
-                color: item.category === 'Dungeon' ? '#FF4655' : '#7C83FD',
-                fontFamily: 'Exo2-SemiBold',
-                fontSize: 12
-              }}>
-                {item.category === 'Dungeon' ? '⚔️ DUNGEON' : '🛡️ DIÁRIA'}
-              </Text>
-            </View>
-            
-            <View style={[GlobalStyle.itemLista, { paddingVertical: 20 }]}>
-              <Text style={[GlobalStyle.textoItem, { 
-                fontSize: 18,
-                fontFamily: 'Exo2-SemiBold',
-                color: '#E0E5FF',
-                marginBottom: 8
-              }]}>
-                {item.title}
-              </Text>
-
-              <Text style={[GlobalStyle.textoItem, {
-                color: '#7C83FD',
-                fontSize: 14,
-                marginBottom: 12
-              }]}>
-                {item.description}
-              </Text>
-              
-              <View style={{ marginTop: 8 }}>
-                <View style={[GlobalStyle.progressBar, { height: 6 }]}>
-                  <View style={[GlobalStyle.progressFill, { 
-                    width: `${item.progress}%`,
-                    backgroundColor: item.progress === 100 ? '#7C83FD' : '#FF4655'
-                  }]} />
-                </View>
-                
-                <View style={{ 
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  marginTop: 8
-                }}>
-                  <Text style={{ 
-                    color: '#7C83FD',
-                    fontSize: 12,
-                    fontFamily: 'Exo2-Italic'
-                  }}>
-                    {item.progress}% concluído
-                  </Text>
-                  
-                  <TouchableOpacity style={{
-                    backgroundColor: item.progress === 100 ? '#7C83FD20' : '#FF465520',
-                    paddingHorizontal: 12,
-                    paddingVertical: 6,
-                    borderRadius: 8,
-                    borderWidth: 1,
-                    borderColor: item.progress === 100 ? '#7C83FD' : '#FF4655'
-                  }}>
-                    <Text style={{ 
-                      color: item.progress === 100 ? '#7C83FD' : '#FF4655',
-                      fontSize: 12,
-                      fontFamily: 'Orbitron-SemiBold'
-                    }}>
-                      {item.progress === 100 ? 'RECOMPENSA 🎁' : 'EM ANDAMENTO ⏳'}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
+            <View style={{ 
+              flexDirection: 'row', 
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: 16
+            }}>
+              <View style={{ flex: 1 }}>
+                <Text style={[GlobalStyle.textoItem, { 
+                  fontSize: 18,
+                  fontFamily: 'Exo2-SemiBold',
+                  color: '#E0E5FF',
+                  marginBottom: 8
+                }]}>
+                  {item.name}
+                </Text>
+                <Text style={[GlobalStyle.textoItem, {
+                  color: '#7C83FD',
+                  fontSize: 14,
+                }]}>
+                  {item.description}
+                </Text>
               </View>
+              
+              <TouchableOpacity 
+                onPress={() => handleDelete(item.id)}
+                style={{
+                  padding: 8,
+                  marginLeft: 10,
+                  backgroundColor: '#FF465520',
+                  borderRadius: 8
+                }}
+              >
+                <Text style={{ 
+                  color: '#FF4655', 
+                  fontFamily: 'Orbitron-SemiBold',
+                  fontSize: 12
+                }}>
+                  Excluir
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
         )}

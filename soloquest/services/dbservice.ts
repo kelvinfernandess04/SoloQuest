@@ -1,4 +1,4 @@
-import * as SQLite from 'expo-sqlite'; 
+import * as SQLite from 'expo-sqlite';
 
 export async function getDbConnection() {
     const cx = await SQLite.openDatabaseAsync('dbSoloQuest.db');
@@ -12,48 +12,57 @@ export async function createTable() {
             name text not null,
             description text not null          
         )`;
-    var cx = await getDbConnection();
+    const cx = await getDbConnection();
     await cx.execAsync(query);   
-    await cx.closeAsync() ;
+    await cx.closeAsync();
 };
 
-export async function createQuest(quest: { id: number; name: string; description: string}) {    
-    let dbCx = await getDbConnection();    
-    let query = 'insert into tbquests (id, name, description) values (?,?,?)';
+export async function createQuest(quest: { 
+    id: string;
+    name: string;
+    description: string
+}) {    
+    const dbCx = await getDbConnection();    
+    const query = 'INSERT INTO tbquests (id, name, description) VALUES (?,?,?)';
     const result = await dbCx.runAsync(query, [quest.id, quest.name, quest.description]);    
-    await dbCx.closeAsync() ;    
-    return result.changes == 1;    
+    await dbCx.closeAsync();    
+    return result.changes === 1;    
 }
+
 export async function readQuest() {
-
-    var retorno = []
-    var dbCx = await getDbConnection();
-    const registros = await dbCx.getAllAsync('SELECT * FROM tbQuests');
-    await dbCx.closeAsync() ;
-
-    for (const registro of registros) {        
-        let obj = {
-            id: registro.id,
-            nome: registro.nome,
-            telefone: registro.telefone            
-        }
-        retorno.push(obj);
+    interface QuestRow {
+        id: string;
+        name: string;
+        description: string;
     }
 
-    return retorno;
-}
-export async function upadteQuest(quest: any) {
-    let dbCx = await getDbConnection();
-    let query = 'update tbquests set name=?, description=? where id=?';
-    const result = await dbCx.runAsync(query, [quest.name, quest.description, quest.id]);
-    await dbCx.closeAsync() ;
-    return result.changes == 1;
+    const dbCx = await getDbConnection();
+    const registros = await dbCx.getAllAsync<QuestRow>('SELECT * FROM tbQuests');
+    await dbCx.closeAsync();
+
+    return registros.map(registro => ({
+        id: registro.id,
+        name: registro.name,
+        description: registro.description
+    }));
 }
 
-export async function deleteQuest(id: number) {
-    let dbCx = await getDbConnection();
-    let query = 'delete from tbquests where id=?';
+export async function updateQuest(quest: { 
+    id: string;
+    name: string;
+    description: string
+}) {
+    const dbCx = await getDbConnection();
+    const query = 'UPDATE tbquests SET name=?, description=? WHERE id=?';
+    const result = await dbCx.runAsync(query, [quest.name, quest.description, quest.id]);
+    await dbCx.closeAsync();
+    return result.changes === 1;
+}
+
+export async function deleteQuest(id: string) {
+    const dbCx = await getDbConnection();
+    const query = 'DELETE FROM tbquests WHERE id=?';
     const result = await dbCx.runAsync(query, id);
-    await dbCx.closeAsync() ;
-    return result.changes == 1;    
+    await dbCx.closeAsync();
+    return result.changes === 1;    
 }
