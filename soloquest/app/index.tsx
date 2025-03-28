@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import { GlobalStyle } from '../styles/GlobalStyles';
 import { useRouter } from 'expo-router';
-import * as DbService from '../services/dbservice';
+import * as dbQuestService from '../services/dbQuestService';
 import { HomeStyles } from '../styles/HomeStyles';
 import { CustomList } from '../components/CustomList';
 
@@ -20,8 +20,8 @@ export default function Home() {
   useEffect(() => {
     const loadQuests = async () => {
       try {
-        await DbService.createTable();
-        const loadedQuests = await DbService.readQuest();
+        await dbQuestService.createTable();
+        const loadedQuests = await dbQuestService.readQuest();
         setQuests(loadedQuests);
       } catch (error) {
         Alert.alert('Erro', 'Falha ao carregar missões');
@@ -41,9 +41,9 @@ export default function Home() {
         text: 'Excluir',
         onPress: async () => {
           try {
-            const success = await DbService.deleteQuest(id);
+            const success = await dbQuestService.deleteQuest(id);
             if (success) {
-              const updatedQuests = await DbService.readQuest();
+              const updatedQuests = await dbQuestService.readQuest();
               setQuests(updatedQuests);
             }
           } catch (error) {

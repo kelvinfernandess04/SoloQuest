@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, Keyboard } from 'react-native';
 import { GlobalStyle } from '../styles/GlobalStyles';
 import { Link, router, useNavigation } from 'expo-router';
-import * as DbService from '../services/dbservice';
+import * as dbQuestService from '../services/dbQuestService';
 import { CreateStyles } from '../styles/CreateStyles';
 
 export default function Create() {
@@ -14,7 +14,7 @@ export default function Create() {
     useEffect(() => {
         const initializeDB = async () => {
             try {
-                await DbService.createTable();
+                await dbQuestService.createTable();
             } catch (e) {
                 console.log('Erro ao criar tabela:', e);
                 Alert.alert('Erro', 'Falha ao inicializar o banco de dados');
@@ -41,7 +41,7 @@ export default function Create() {
         };
 
         try {
-            const success = await DbService.createQuest(newQuest);
+            const success = await dbQuestService.createQuest(newQuest);
 
             if (success) {
                 Alert.alert('Sucesso', 'Missão criada com sucesso!', [{
