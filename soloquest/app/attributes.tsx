@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text } from 'react-native';
 import { GlobalStyle } from '../styles/GlobalStyles';
-import { Link } from 'expo-router';
+import { AttributesStyles } from '../styles/AttributesStyles';
+import { CustomList } from '../components/CustomList';
 
 const attributes = [
   { name: 'STR', value: 75, label: 'Força' },
@@ -14,31 +15,34 @@ const attributes = [
 
 export default function Attributes() {
   return (
+
     <View style={GlobalStyle.container}>
       <Text style={[GlobalStyle.titulo, { marginBottom: 30 }]}>Status do Caçador</Text>
-      
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-        {attributes.map((attr) => (
-          <View key={attr.name} style={GlobalStyle.attributeContainer}>
-            <Text style={GlobalStyle.attributeTitle}>{attr.name}</Text>
-            <Text style={{ color: '#C0C5FF', marginBottom: 8 }}>{attr.label}</Text>
-            
-            <View style={GlobalStyle.progressBar}>
-              <View style={[GlobalStyle.progressFill, { width: `${attr.value}%` }]} />
+
+      <CustomList
+        data={attributes}
+        keyExtractor={(item) => item.name}
+        contentContainerStyle={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}
+        renderItem={({ item }) => (
+          <View style={AttributesStyles.attributeContainer}>
+            <Text style={AttributesStyles.attributeTitle}>{item.name}</Text>
+            <Text style={{ color: '#C0C5FF', marginBottom: 8 }}>{item.label}</Text>
+
+            <View style={AttributesStyles.progressBar}>
+              <View style={[AttributesStyles.progressFill, { width: `${item.value}%` }]} />
             </View>
-            
-            <Text style={{ 
-              color: '#7C83FD', 
+
+            <Text style={{
+              color: '#7C83FD',
               marginTop: 8,
               fontFamily: 'Orbitron-SemiBold'
             }}>
-              {attr.value}%
+              {item.value}%
             </Text>
+
           </View>
-        ))}
-      </View>
-      
+        )}
+      />
     </View>
-    
   );
 }

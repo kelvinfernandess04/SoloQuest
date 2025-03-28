@@ -3,11 +3,13 @@ import { View, Text, TextInput, TouchableOpacity, Alert, Keyboard } from 'react-
 import { GlobalStyle } from '../styles/GlobalStyles';
 import { Link, router, useNavigation } from 'expo-router';
 import * as DbService from '../services/dbservice';
+import { CreateStyles } from '../styles/CreateStyles';
 
 export default function Create() {
     const [taskTitle, setTaskTitle] = useState('');
     const [taskDetails, setTaskDetails] = useState('');
     const navigation = useNavigation();
+    const [taskPoints, setTaskPoints] = useState(0);
 
     useEffect(() => {
         const initializeDB = async () => {
@@ -34,16 +36,18 @@ export default function Create() {
         const newQuest = {
             id: createUniqueId(),
             name: taskTitle,
-            description: taskDetails
+            description: taskDetails,
+            points: taskPoints
         };
 
         try {
             const success = await DbService.createQuest(newQuest);
-            
+
             if (success) {
                 Alert.alert('Sucesso', 'Missão criada com sucesso!', [{
                     text: 'OK',
-                    onPress: () => {router.push('/')
+                    onPress: () => {
+                        router.push('/')
                     }
                 }]);
                 setTaskTitle('');
@@ -63,7 +67,7 @@ export default function Create() {
             <Text style={GlobalStyle.titulo}>Nova Missão</Text>
 
             <TextInput
-                style={GlobalStyle.input}
+                style={CreateStyles.input}
                 placeholder="Nome da Missão"
                 placeholderTextColor="#4E54C8"
                 value={taskTitle}
@@ -72,7 +76,7 @@ export default function Create() {
             />
 
             <TextInput
-                style={[GlobalStyle.input, {
+                style={[CreateStyles.input, {
                     height: 120,
                     textAlignVertical: 'top',
                     fontFamily: 'Exo2-Italic'
@@ -85,15 +89,84 @@ export default function Create() {
                 maxLength={500}
             />
 
+            <View style={{
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                gap: 8,
+                marginVertical: 12
+            }}>
+                {/* Botão Muito Fácil */}
+                <TouchableOpacity
+                    style={{
+                        flex: 1,
+                        padding: 12,
+                        borderRadius: 8,
+                        backgroundColor: '#4E54C8',
+                        minWidth: 100
+                    }}
+                    onPress={() => { setTaskPoints(50) }}>
+                    <Text style={{ color: 'white', textAlign: 'center' }}>Muito Fácil</Text>
+                </TouchableOpacity>
+
+                {/* Botão Fácil */}
+                <TouchableOpacity
+                    style={{
+                        flex: 1,
+                        padding: 12,
+                        borderRadius: 8,
+                        backgroundColor: '#4E54C8'
+                    }}
+                    onPress={() => { setTaskPoints(100) }}>
+                    <Text style={{ color: 'white', textAlign: 'center' }}>Fácil</Text>
+                </TouchableOpacity>
+
+                {/* Botão Médio */}
+                <TouchableOpacity
+                    style={{
+                        flex: 1,
+                        padding: 12,
+                        borderRadius: 8,
+                        backgroundColor: '#4E54C8'
+                    }}
+                    onPress={() => { setTaskPoints(500) }}>
+                    <Text style={{ color: 'white', textAlign: 'center' }}>Médio</Text>
+                </TouchableOpacity>
+
+                {/* Botão Difícil */}
+                <TouchableOpacity
+                    style={{
+                        flex: 1,
+                        padding: 12,
+                        borderRadius: 8,
+                        backgroundColor: '#4E54C8'
+                    }}
+                    onPress={() => { setTaskPoints(1000) }}>
+                    <Text style={{ color: 'white', textAlign: 'center' }}>Difícil</Text>
+                </TouchableOpacity>
+
+                {/* Botão Muito Difícil */}
+                <TouchableOpacity
+                    style={{
+                        flex: 1,
+                        padding: 12,
+                        borderRadius: 8,
+                        backgroundColor: '#4E54C8'
+                    }}
+                    onPress={() => { setTaskPoints(2000) }}>
+                    <Text style={{ color: 'white', textAlign: 'center' }}>Muito Difícil</Text>
+                </TouchableOpacity>
+            </View>
+
+
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 16 }}>
                 <Link href="../" asChild>
-                    <TouchableOpacity style={GlobalStyle.botaoAdicionar}>
+                    <TouchableOpacity style={CreateStyles.botaoAdicionar}>
                         <Text style={{ color: '#E0E5FF' }}>Cancelar</Text>
                     </TouchableOpacity>
                 </Link>
 
                 <TouchableOpacity
-                    style={[GlobalStyle.botaoAdicionar, { backgroundColor: '#7C83FD' }]}
+                    style={[CreateStyles.botaoAdicionar, { backgroundColor: '#7C83FD' }]}
                     onPress={handleCreateQuest}
                 >
                     <Text style={{ color: '#0A0F24', fontWeight: 'bold' }}>Criar Missão</Text>

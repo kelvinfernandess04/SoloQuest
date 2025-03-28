@@ -6,11 +6,12 @@ export async function getDbConnection() {
 }
 
 export async function createTable() {    
-    const query = `CREATE TABLE IF NOT EXISTS tbquests
+        const query = `CREATE TABLE IF NOT EXISTS tbquests
         (
             id text not null primary key,
             name text not null,
-            description text not null          
+            description text not null,
+            points integer not null        
         )`;
     const cx = await getDbConnection();
     await cx.execAsync(query);   
@@ -20,11 +21,12 @@ export async function createTable() {
 export async function createQuest(quest: { 
     id: string;
     name: string;
-    description: string
+    description: string;
+    points: number
 }) {    
     const dbCx = await getDbConnection();    
-    const query = 'INSERT INTO tbquests (id, name, description) VALUES (?,?,?)';
-    const result = await dbCx.runAsync(query, [quest.id, quest.name, quest.description]);    
+    const query = 'INSERT INTO tbquests (id, name, description, points) VALUES (?,?,?,?)';
+    const result = await dbCx.runAsync(query, [quest.id, quest.name, quest.description, quest.points]);    
     await dbCx.closeAsync();    
     return result.changes === 1;    
 }
@@ -34,6 +36,7 @@ export async function readQuest() {
         id: string;
         name: string;
         description: string;
+        points: number
     }
 
     const dbCx = await getDbConnection();
@@ -43,18 +46,20 @@ export async function readQuest() {
     return registros.map(registro => ({
         id: registro.id,
         name: registro.name,
-        description: registro.description
+        description: registro.description,
+        points: registro.points
     }));
 }
 
 export async function updateQuest(quest: { 
     id: string;
     name: string;
-    description: string
+    description: string;
+    points: number
 }) {
     const dbCx = await getDbConnection();
-    const query = 'UPDATE tbquests SET name=?, description=? WHERE id=?';
-    const result = await dbCx.runAsync(query, [quest.name, quest.description, quest.id]);
+    const query = 'UPDATE tbquests SET name=?, description=?, points=? WHERE id=?';
+    const result = await dbCx.runAsync(query, [quest.name, quest.description, quest.points, quest.id]);
     await dbCx.closeAsync();
     return result.changes === 1;
 }

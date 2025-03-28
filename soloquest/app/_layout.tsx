@@ -4,6 +4,7 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { GlobalStyle } from '../styles/GlobalStyles';
 import { useSegments } from 'expo-router';
 
+
 export default function Layout() {
   const segments = useSegments();
   const router = useRouter();

@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import { GlobalStyle } from '../styles/GlobalStyles';
 import { useRouter } from 'expo-router';
 import * as DbService from '../services/dbservice';
+import { HomeStyles } from '../styles/HomeStyles';
+import { CustomList } from '../components/CustomList';
 
 interface Quest {
   id: string;
   name: string;
   description: string;
+  points: number;
 }
 
 export default function Home() {
@@ -54,90 +57,48 @@ export default function Home() {
 
   return (
     <View style={GlobalStyle.container}>
-      <View style={GlobalStyle.headerContainer}>
+      <View style={HomeStyles.headerContainer}>
         <Text style={[GlobalStyle.titulo, { marginBottom: 10 }]}>Quests</Text>
         <TouchableOpacity
-          style={[GlobalStyle.headerButton, {
-            paddingVertical: 8,
-            paddingHorizontal: 12,
-            borderRadius: 8
-          }]}
+          style={[HomeStyles.headerButton, HomeStyles.headerButtonAlt]}
           onPress={() => router.push('/create')}
         >
-          <Text style={{ 
-            color: '#7C83FD', 
-            fontFamily: 'Orbitron-SemiBold',
-            fontSize: 14
-          }}>
+          <Text style={HomeStyles.deleteButtonText}>
             ⚔️ NOVA
           </Text>
         </TouchableOpacity>
       </View>
 
-      <FlatList
+      <CustomList
         data={quests}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingBottom: 90 }}
         renderItem={({ item }) => (
-          <View style={[GlobalStyle.listaContainer, { 
-            borderColor: '#7C83FD20',
-            position: 'relative',
-            marginBottom: 16
-          }]}>
-            <View style={{ 
-              flexDirection: 'row', 
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: 16
-            }}>
+          <View style={[HomeStyles.listaContainer, HomeStyles.questContainer]}>
+            <View style={HomeStyles.questContent}>
               <View style={{ flex: 1 }}>
-                <Text style={[GlobalStyle.textoItem, { 
-                  fontSize: 18,
-                  fontFamily: 'Exo2-SemiBold',
-                  color: '#E0E5FF',
-                  marginBottom: 8
-                }]}>
+                <Text style={[HomeStyles.questName]}>
                   {item.name}
                 </Text>
-                <Text style={[GlobalStyle.textoItem, {
-                  color: '#7C83FD',
-                  fontSize: 14,
-                }]}>
+                <Text style={HomeStyles.questInfo}>
                   {item.description}
                 </Text>
+                <Text style={HomeStyles.questInfo}>
+                  {item.points}
+                </Text>
               </View>
-              
-              <TouchableOpacity 
+
+              <TouchableOpacity
                 onPress={() => handleDelete(item.id)}
-                style={{
-                  padding: 8,
-                  marginLeft: 10,
-                  backgroundColor: '#FF465520',
-                  borderRadius: 8
-                }}
+                style={HomeStyles.deleteButton}
               >
-                <Text style={{ 
-                  color: '#FF4655', 
-                  fontFamily: 'Orbitron-SemiBold',
-                  fontSize: 12
-                }}>
+                <Text style={HomeStyles.deleteButtonText}>
                   Excluir
                 </Text>
               </TouchableOpacity>
             </View>
           </View>
         )}
-        ListEmptyComponent={
-          <View style={{ alignItems: 'center', marginTop: 50 }}>
-            <Text style={{ 
-              color: '#4E54C8', 
-              fontSize: 18,
-              fontFamily: 'Exo2-Italic'
-            }}>
-              Nenhuma missão encontrada...
-            </Text>
-          </View>
-        }
+        emptyMessage="Nenhuma missão encontrada..."
       />
     </View>
   );
