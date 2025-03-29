@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, TextInput, Modal, StyleSheet } from 'react-native';
 import { GlobalStyle } from '../styles/GlobalStyles';
 import * as dbItemService from '../services/dbItemService';
 
@@ -25,6 +25,7 @@ export default function Store() {
     price: 0,
     owned: false 
   });
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
 
   const loadItems = async () => {
     try {
@@ -41,6 +42,8 @@ export default function Store() {
   }, []);
 
   const handleAddItem = async () => {
+    if (!newItem.name.trim()) return;
+    
     try {
       const itemToAdd = {
         ...newItem,
@@ -106,24 +109,9 @@ export default function Store() {
       <Text style={GlobalStyle.titulo}>Tesouro do Caçador</Text>
       
       {/* Formulário de adição */}
-      <View style={{ 
-        backgroundColor: '#161B33', 
-        padding: 16, 
-        borderRadius: 12,
-        marginBottom: 16,
-        borderWidth: 1,
-        borderColor: '#7C83FD30'
-      }}>
+      <View style={styles.formContainer}>
         <TextInput
-          style={{
-            color: '#E0E5FF',
-            backgroundColor: '#0A0F24',
-            padding: 12,
-            borderRadius: 8,
-            marginBottom: 12,
-            borderWidth: 1,
-            borderColor: '#2A2F4D'
-          }}
+          style={styles.input}
           placeholder="Nome do item"
           placeholderTextColor="#7C83FD80"
           value={newItem.name}
@@ -131,34 +119,69 @@ export default function Store() {
         />
         
         <TextInput
-          style={{
-            color: '#E0E5FF',
-            backgroundColor: '#0A0F24',
-            padding: 12,
-            borderRadius: 8,
-            marginBottom: 12,
-            borderWidth: 1,
-            borderColor: '#2A2F4D'
-          }}
+          style={styles.input}
           placeholder="Preço"
           placeholderTextColor="#7C83FD80"
           keyboardType="numeric"
-          value={newItem.price.toString()}
+          value={newItem.price > 0 ? newItem.price.toString() : ''}
           onChangeText={text => setNewItem({...newItem, price: Number(text) || 0})}
         />
         
-        <TouchableOpacity
-          style={{
-            backgroundColor: '#7C83FD',
-            padding: 12,
-            borderRadius: 8,
-            alignItems: 'center'
-          }}
-          onPress={handleAddItem}
+        {/* Seletor de Categoria */}
+        <TouchableOpacity 
+          style={styles.categorySelector}
+          onPress={() => setShowCategoryModal(true)}
         >
-          <Text style={{ color: '#E0E5FF', fontWeight: 'bold' }}>Adicionar Item</Text>
+          <Text style={styles.categorySelectorText}>
+            Categoria: {newItem.category}
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[styles.addButton, !newItem.name.trim() && styles.disabledButton]}
+          onPress={handleAddItem}
+          disabled={!newItem.name.trim()}
+        >
+          <Text style={styles.addButtonText}>Adicionar Item</Text>
         </TouchableOpacity>
       </View>
+      
+      {/* Modal de Seleção de Categoria */}
+      <Modal
+        visible={showCategoryModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowCategoryModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Selecione a Categoria</Text>
+            
+            {Object.values(ItemCategory).map((category) => (
+              <TouchableOpacity
+                key={category}
+                style={[
+                  styles.categoryOption,
+                  newItem.category === category && styles.categoryOptionSelected
+                ]}
+                onPress={() => {
+                  setNewItem({...newItem, category});
+                  setShowCategoryModal(false);
+                }}
+              >
+                <Text style={styles.categoryOptionText}>{category}</Text>
+              </TouchableOpacity>
+            ))}
+            
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={() => setShowCategoryModal(false)}
+            >
+              <Text style={styles.modalCloseButtonText}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
       
       {/* Lista de itens */}
       <FlatList
@@ -215,3 +238,94 @@ export default function Store() {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  formContainer: {
+    backgroundColor: '#161B33', 
+    padding: 16, 
+    borderRadius: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#7C83FD30'
+  },
+  input: {
+    color: '#E0E5FF',
+    backgroundColor: '#0A0F24',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#2A2F4D'
+  },
+  categorySelector: {
+    backgroundColor: '#0A0F24',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#2A2F4D'
+  },
+  categorySelectorText: {
+    color: '#E0E5FF'
+  },
+  addButton: {
+    backgroundColor: '#7C83FD',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center'
+  },
+  disabledButton: {
+    opacity: 0.6
+  },
+  addButtonText: {
+    color: '#E0E5FF', 
+    fontWeight: 'bold'
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    backgroundColor: 'rgba(10, 15, 36, 0.8)',
+    padding: 20
+  },
+  modalContent: {
+    backgroundColor: '#161B33',
+    borderRadius: 12,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#7C83FD30'
+  },
+  modalTitle: {
+    color: '#E0E5FF',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    textAlign: 'center'
+  },
+  categoryOption: {
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+    backgroundColor: '#0A0F24'
+  },
+  categoryOptionSelected: {
+    backgroundColor: '#7C83FD30',
+    borderWidth: 1,
+    borderColor: '#7C83FD'
+  },
+  categoryOptionText: {
+    color: '#E0E5FF',
+    textAlign: 'center'
+  },
+  modalCloseButton: {
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: '#FF465520',
+    borderWidth: 1,
+    borderColor: '#FF4655'
+  },
+  modalCloseButtonText: {
+    color: '#FF4655',
+    textAlign: 'center'
+  }
+});
