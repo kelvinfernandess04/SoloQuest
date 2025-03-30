@@ -1,331 +1,356 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, TextInput, Modal, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, Modal, StyleSheet, FlatList, Alert } from 'react-native';
 import { GlobalStyle } from '../styles/GlobalStyles';
 import * as dbItemService from '../services/dbItemService';
+import * as dbStoreService from '../services/dbStoreService';
+import { CustomList } from '../components/CustomList';
+import { Item, ItemCategory } from './inventory'; // Adicione a exportação da interface no inventory
 
-enum ItemCategory {
-  Weapon = "Arma",
-  Armor = "Armadura",
-  Acessorie = "Acessório"
-}
-
-interface Item {
-  id: string;
-  name: string;
-  category: ItemCategory;
-  price: number;
-  owned: boolean;
+interface Transaction {
+  id: number;
+  saleDate: string;
+  total: number;
+  type: 'buy' | 'sell';
+  items: { name: string; price: number }[];
 }
 
 export default function Store() {
-  const [items, setItems] = useState<Item[]>([]);
-  const [newItem, setNewItem] = useState<Omit<Item, 'id'>>({ 
-    name: '', 
-    category: ItemCategory.Weapon,
-    price: 0,
-    owned: false 
-  });
-  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [storeItems, setStoreItems] = useState<Item[]>([]);
+  const [cart, setCart] = useState<Item[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [showCartModal, setShowCartModal] = useState(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
 
-  const loadItems = async () => {
-    try {
-      await dbItemService.createTable();
-      const dbItems = await dbItemService.readItem();
-      setItems(dbItems as Item[]);
-    } catch (error) {
-      console.error('Erro ao carregar itens:', error);
-    }
-  };
-
+  // Carregar itens e histórico
   useEffect(() => {
     loadItems();
+    loadTransactions();
   }, []);
 
-  const handleAddItem = async () => {
-    if (!newItem.name.trim()) return;
-    
+  const loadItems = async () => {
+    const items = await dbItemService.readItem() as Item[];
+    setStoreItems(items);
+  };
+
+  const loadTransactions = async () => {
+    const sales = await dbStoreService.getSales();
+    const transactionsWithType: Transaction[] = sales.map(sale => ({
+      ...sale,
+      type: 'sell',
+      items: [] // Será carregado detalhes quando necessário
+    }));
+    setTransactions(transactionsWithType);
+  };
+
+  // Adicionar ao carrinho
+  const handleAddToCart = (item: Item) => {
+    setCart([...cart, item]);
+  };
+
+  // Remover do carrinho
+  const handleRemoveFromCart = (index: number) => {
+    const newCart = [...cart];
+    newCart.splice(index, 1);
+    setCart(newCart);
+  };
+
+  // Finalizar compra/venda
+  const handleCheckout = async (type: 'buy' | 'sell') => {
     try {
-      const itemToAdd = {
-        ...newItem,
-        id: Math.random().toString(36).substring(7)
-      };
-      
-      const success = await dbItemService.createItem({
-        ...itemToAdd,
-        category: itemToAdd.category.toString()
-      });
-      
-      if (success) {
-        setItems([...items, itemToAdd]);
-        setNewItem({ name: '', category: ItemCategory.Weapon, price: 0, owned: false });
+      if (type === 'buy') {
+        // Lógica de compra
+        await Promise.all(cart.map(item => 
+          dbItemService.updateItem({ ...item, owned: true })
+        ));
+      } else {
+        // Lógica de venda
+        await dbStoreService.createSale(cart.map(item => ({ itemId: item.id })));
       }
+
+      Alert.alert('Sucesso', type === 'buy' ? 'Compra realizada!' : 'Venda realizada!');
+      setCart([]);
+      setShowCartModal(false);
+      loadItems();
+      loadTransactions();
     } catch (error) {
-      console.error('Erro ao adicionar item:', error);
+      Alert.alert('Erro');
     }
   };
 
-  const handleToggleOwned = async (item: Item) => {
-    try {
-      const updatedItem = { ...item, owned: !item.owned };
-      const success = await dbItemService.updateItem({
-        ...updatedItem,
-        category: updatedItem.category.toString()
-      });
+  // Renderizar item da loja
+  const renderStoreItem = ({ item }: { item: Item }) => (
+    <View style={GlobalStyle.rewardCard}>
+      <View style={[GlobalStyle.categoryTag, getCategoryStyle(item.category)]}>
+        <Text style={{ color: getCategoryStyle(item.category).borderColor, fontSize: 12 }}>
+          {item.category}
+        </Text>
+      </View>
       
-      if (success) {
-        setItems(items.map(i => i.id === item.id ? updatedItem : i));
-      }
-    } catch (error) {
-      console.error('Erro ao atualizar item:', error);
-    }
-  };
+      <Text style={{ color: '#E0E5FF', fontSize: 18, marginBottom: 8 }}>
+        {item.name}
+      </Text>
+      
+      <Text style={{ color: '#7C83FD', marginBottom: 8 }}>
+        Preço: {item.price} moedas
+      </Text>
 
-  const handleDeleteItem = async (id: string) => {
-    try {
-      const success = await dbItemService.deleteItem(id);
-      if (success) {
-        setItems(items.filter(item => item.id !== id));
-      }
-    } catch (error) {
-      console.error('Erro ao remover item:', error);
-    }
-  };
-
-  const getCategoryStyle = (category: ItemCategory) => {
-    switch(category) {
-      case ItemCategory.Weapon:
-        return { backgroundColor: '#FF465520', borderColor: '#FF4655' };
-      case ItemCategory.Armor:
-        return { backgroundColor: '#4CAF5020', borderColor: '#4CAF50' };
-      case ItemCategory.Acessorie:
-        return { backgroundColor: '#9C27B020', borderColor: '#9C27B0' };
-      default:
-        return { backgroundColor: '#607D8B20', borderColor: '#607D8B' };
-    }
-  };
+      {!item.owned ? (
+        <TouchableOpacity
+          style={styles.buyButton}
+          onPress={() => handleAddToCart(item)}>
+          <Text style={styles.buttonText}>Comprar</Text>
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity
+          style={styles.sellButton}
+          onPress={() => handleAddToCart(item)}>
+          <Text style={styles.buttonText}>Vender</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
 
   return (
     <View style={GlobalStyle.container}>
-      <Text style={GlobalStyle.titulo}>Tesouro do Caçador</Text>
-      
-      {/* Formulário de adição */}
-      <View style={styles.formContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="Nome do item"
-          placeholderTextColor="#7C83FD80"
-          value={newItem.name}
-          onChangeText={text => setNewItem({...newItem, name: text})}
-        />
-        
-        <TextInput
-          style={styles.input}
-          placeholder="Preço"
-          placeholderTextColor="#7C83FD80"
-          keyboardType="numeric"
-          value={newItem.price > 0 ? newItem.price.toString() : ''}
-          onChangeText={text => setNewItem({...newItem, price: Number(text) || 0})}
-        />
-        
-        {/* Seletor de Categoria */}
-        <TouchableOpacity 
-          style={styles.categorySelector}
-          onPress={() => setShowCategoryModal(true)}
-        >
-          <Text style={styles.categorySelectorText}>
-            Categoria: {newItem.category}
-          </Text>
-        </TouchableOpacity>
-        
+      <Text style={GlobalStyle.titulo}>Loja do Caçador</Text>
+
+      {/* Abas de Compra/Venda */}
+      <View style={styles.tabContainer}>
         <TouchableOpacity
-          style={[styles.addButton, !newItem.name.trim() && styles.disabledButton]}
-          onPress={handleAddItem}
-          disabled={!newItem.name.trim()}
-        >
-          <Text style={styles.addButtonText}>Adicionar Item</Text>
+          style={[styles.tabButton, { backgroundColor: '#4CAF5050' }]}
+          onPress={() => setShowCartModal(true)}>
+          <Text style={styles.tabText}>🛒 Carrinho ({cart.length})</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.tabButton, { backgroundColor: '#9C27B050' }]}
+          onPress={() => setShowHistoryModal(true)}>
+          <Text style={styles.tabText}>📜 Histórico</Text>
         </TouchableOpacity>
       </View>
-      
-      {/* Modal de Seleção de Categoria */}
-      <Modal
-        visible={showCategoryModal}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowCategoryModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Selecione a Categoria</Text>
-            
-            {Object.values(ItemCategory).map((category) => (
-              <TouchableOpacity
-                key={category}
-                style={[
-                  styles.categoryOption,
-                  newItem.category === category && styles.categoryOptionSelected
-                ]}
-                onPress={() => {
-                  setNewItem({...newItem, category});
-                  setShowCategoryModal(false);
-                }}
-              >
-                <Text style={styles.categoryOptionText}>{category}</Text>
-              </TouchableOpacity>
-            ))}
-            
+
+      {/* Lista de Itens para Compra */}
+      <Text style={styles.sectionTitle}>Itens Disponíveis para Compra</Text>
+      <CustomList
+        data={storeItems.filter(item => !item.owned)}
+        keyExtractor={(item) => item.id}
+        renderItem={renderStoreItem}
+        contentContainerStyle={{ paddingBottom: 20 }}
+      />
+
+      {/* Lista de Itens para Venda */}
+      <Text style={styles.sectionTitle}>Itens Disponíveis para Venda</Text>
+      <CustomList
+        data={storeItems.filter(item => item.owned)}
+        keyExtractor={(item) => item.id}
+        renderItem={renderStoreItem}
+        contentContainerStyle={{ paddingBottom: 20 }}
+      />
+
+      {/* Modal do Carrinho */}
+      <Modal visible={showCartModal} animationType="slide">
+        <View style={styles.modalContainer}>
+          <Text style={styles.modalTitle}>
+            {cart[0]?.owned ? 'Vender Itens' : 'Comprar Itens'}
+          </Text>
+
+          <FlatList
+            data={cart}
+            keyExtractor={(item, index) => index.toString()}
+            renderItem={({ item, index }) => (
+              <View style={styles.cartItem}>
+                <Text style={styles.cartText}>{item.name}</Text>
+                <Text style={styles.cartText}>{item.price} moedas</Text>
+                <TouchableOpacity onPress={() => handleRemoveFromCart(index)}>
+                  <Text style={styles.removeText}>✕</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          />
+
+          <Text style={styles.totalText}>
+            Total: {cart.reduce((sum, item) => sum + item.price, 0)} moedas
+          </Text>
+
+          <View style={styles.buttonGroup}>
             <TouchableOpacity
-              style={styles.modalCloseButton}
-              onPress={() => setShowCategoryModal(false)}
-            >
-              <Text style={styles.modalCloseButtonText}>Cancelar</Text>
+              style={styles.cancelButton}
+              onPress={() => setShowCartModal(false)}>
+              <Text style={styles.buttonText}>Cancelar</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.checkoutButton}
+              onPress={() => handleCheckout(cart[0]?.owned ? 'sell' : 'buy')}>
+              <Text style={styles.buttonText}>
+                {cart[0]?.owned ? 'Confirmar Venda' : 'Confirmar Compra'}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
-      
-      {/* Lista de itens */}
-      <FlatList
-        data={items}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={GlobalStyle.rewardCard}>
-            <View style={[GlobalStyle.categoryTag, getCategoryStyle(item.category)]}>
-              <Text style={{ color: getCategoryStyle(item.category).borderColor, fontSize: 12 }}>
-                {item.category}
-              </Text>
-            </View>
-            
-            <Text style={{ color: '#E0E5FF', fontSize: 18, fontWeight: 'bold', marginBottom: 8 }}>
-              {item.name}
-            </Text>
-            
-            <Text style={{ color: '#7C83FD', marginBottom: 8 }}>
-              Preço: <Text style={{ color: '#E0E5FF' }}>{item.price} moedas</Text>
-            </Text>
-            
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <TouchableOpacity
-                style={{
-                  backgroundColor: item.owned ? '#2A2F4D' : '#7C83FD',
-                  padding: 8,
-                  borderRadius: 6,
-                  flex: 1,
-                  marginRight: 8
-                }}
-                onPress={() => handleToggleOwned(item)}
-              >
-                <Text style={{ color: '#E0E5FF', textAlign: 'center' }}>
-                  {item.owned ? 'Possuído' : 'Não Possuído'}
+
+      {/* Modal do Histórico */}
+      <Modal visible={showHistoryModal} animationType="slide">
+        <View style={styles.modalContainer}>
+          <Text style={styles.modalTitle}>Histórico de Transações</Text>
+
+          <FlatList
+            data={transactions}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={({ item }) => (
+              <View style={styles.transactionItem}>
+                <Text style={styles.transactionText}>
+                  {new Date(item.saleDate).toLocaleDateString()}
                 </Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={{
-                  backgroundColor: '#FF465520',
-                  padding: 8,
-                  borderRadius: 6,
-                  borderWidth: 1,
-                  borderColor: '#FF4655'
-                }}
-                onPress={() => handleDeleteItem(item.id)}
-              >
-                <Text style={{ color: '#FF4655', textAlign: 'center' }}>Remover</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
-      />
+                <Text style={styles.transactionText}>
+                  {item.type === 'buy' ? 'Compra' : 'Venda'} - {item.total} moedas
+                </Text>
+              </View>
+            )}
+          />
+
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={() => setShowHistoryModal(false)}>
+            <Text style={styles.buttonText}>Fechar</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
     </View>
   );
 }
 
+// Estilos (adicione ao seu GlobalStyles ou crie um StoreStyles)
 const styles = StyleSheet.create({
-  formContainer: {
-    backgroundColor: '#161B33', 
-    padding: 16, 
-    borderRadius: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#7C83FD30'
+  tabContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 20,
   },
-  input: {
+  tabButton: {
+    padding: 10,
+    borderRadius: 8,
+    width: '45%',
+    alignItems: 'center',
+  },
+  tabText: {
     color: '#E0E5FF',
-    backgroundColor: '#0A0F24',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 12,
+    fontWeight: 'bold',
+  },
+  sectionTitle: {
+    color: '#7C83FD',
+    fontSize: 20,
+    marginVertical: 10,
+    fontFamily: 'Cinzel-Bold',
+  },
+  buyButton: {
+    backgroundColor: '#4CAF5050',
+    padding: 8,
+    borderRadius: 6,
+    alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#2A2F4D'
+    borderColor: '#4CAF50',
   },
-  categorySelector: {
-    backgroundColor: '#0A0F24',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 12,
+  sellButton: {
+    backgroundColor: '#9C27B050',
+    padding: 8,
+    borderRadius: 6,
+    alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#2A2F4D'
+    borderColor: '#9C27B0',
   },
-  categorySelectorText: {
-    color: '#E0E5FF'
+  buttonText: {
+    color: '#E0E5FF',
+    fontWeight: '600',
   },
-  addButton: {
-    backgroundColor: '#7C83FD',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center'
-  },
-  disabledButton: {
-    opacity: 0.6
-  },
-  addButtonText: {
-    color: '#E0E5FF', 
-    fontWeight: 'bold'
-  },
-  modalOverlay: {
+  modalContainer: {
     flex: 1,
-    justifyContent: 'center',
-    backgroundColor: 'rgba(10, 15, 36, 0.8)',
-    padding: 20
-  },
-  modalContent: {
-    backgroundColor: '#161B33',
-    borderRadius: 12,
+    backgroundColor: '#0A0F24',
     padding: 20,
-    borderWidth: 1,
-    borderColor: '#7C83FD30'
   },
   modalTitle: {
     color: '#E0E5FF',
-    fontSize: 18,
+    fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 16,
-    textAlign: 'center'
+    marginBottom: 20,
+    textAlign: 'center',
   },
-  categoryOption: {
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
-    backgroundColor: '#0A0F24'
+  cartItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2A2F4D',
   },
-  categoryOptionSelected: {
-    backgroundColor: '#7C83FD30',
-    borderWidth: 1,
-    borderColor: '#7C83FD'
-  },
-  categoryOptionText: {
+  cartText: {
     color: '#E0E5FF',
-    textAlign: 'center'
+    fontSize: 16,
   },
-  modalCloseButton: {
-    marginTop: 12,
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: '#FF465520',
-    borderWidth: 1,
-    borderColor: '#FF4655'
-  },
-  modalCloseButtonText: {
+  removeText: {
     color: '#FF4655',
-    textAlign: 'center'
-  }
+    fontSize: 20,
+  },
+  totalText: {
+    color: '#7C83FD',
+    fontSize: 20,
+    textAlign: 'right',
+    margin: 15,
+    fontFamily: 'Orbitron-SemiBold',
+  },
+  buttonGroup: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 20,
+  },
+  cancelButton: {
+    backgroundColor: '#FF465550',
+    padding: 15,
+    borderRadius: 8,
+    width: '40%',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#FF4655',
+  },
+  checkoutButton: {
+    backgroundColor: '#7C83FD',
+    padding: 15,
+    borderRadius: 8,
+    width: '40%',
+    alignItems: 'center',
+  },
+  transactionItem: {
+    backgroundColor: '#161B33',
+    padding: 15,
+    marginVertical: 5,
+    borderRadius: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  transactionText: {
+    color: '#E0E5FF',
+    fontSize: 16,
+  },
+  closeButton: {
+    backgroundColor: '#7C83FD',
+    padding: 15,
+    borderRadius: 8,
+    marginTop: 20,
+    alignItems: 'center',
+  },
 });
+
+// Adicione esta função auxiliar no mesmo arquivo ou em GlobalStyles
+function getCategoryStyle(category: ItemCategory) {
+  switch(category) {
+    case ItemCategory.Weapon:
+      return { backgroundColor: '#FF465520', borderColor: '#FF4655' };
+    case ItemCategory.Armor:
+      return { backgroundColor: '#4CAF5020', borderColor: '#4CAF50' };
+    case ItemCategory.Acessorie:
+      return { backgroundColor: '#9C27B020', borderColor: '#9C27B0' };
+    default:
+      return { backgroundColor: '#607D8B20', borderColor: '#607D8B' };
+  }
+}

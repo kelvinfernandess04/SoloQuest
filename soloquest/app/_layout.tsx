@@ -23,13 +23,13 @@ export default function Layout() {
         <Stack.Screen name="index" />
         <Stack.Screen name="create" />
         <Stack.Screen name="attributes" />
-        <Stack.Screen name="store" />
+        <Stack.Screen name="inventory" />
       </Stack>
 
       {/* Barra de navegação inferior */}
       {showNavBar && (
         <View style={GlobalStyle.navContainer}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={GlobalStyle.navButton}
             onPress={() => router.push('/')}
           >
@@ -41,7 +41,7 @@ export default function Layout() {
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
+          <TouchableOpacity
             style={GlobalStyle.navButton}
             onPress={() => router.push('/attributes')}
           >
@@ -53,7 +53,19 @@ export default function Layout() {
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
+          <TouchableOpacity
+            style={GlobalStyle.navButton}
+            onPress={() => router.push('/inventory')}
+          >
+            <Text style={[
+              GlobalStyle.navText,
+              segments[0] === 'inventory' && { color: '#FF4655' }
+            ]}>
+              💎 Inventory
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
             style={GlobalStyle.navButton}
             onPress={() => router.push('/store')}
           >
@@ -61,7 +73,7 @@ export default function Layout() {
               GlobalStyle.navText,
               segments[0] === 'store' && { color: '#FF4655' }
             ]}>
-              💎 Store
+              🛒 Store
             </Text>
           </TouchableOpacity>
         </View>
