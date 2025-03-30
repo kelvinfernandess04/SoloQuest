@@ -73,7 +73,7 @@ export default function Store() {
       loadItems();
       loadTransactions();
     } catch (error) {
-      Alert.alert('Erro');
+      Alert.alert('Erro. Não é possível vender e comprar ao mesmo tempo');
     }
   };
 
@@ -341,7 +341,6 @@ const styles = StyleSheet.create({
   },
 });
 
-// Adicione esta função auxiliar no mesmo arquivo ou em GlobalStyles
 function getCategoryStyle(category: ItemCategory) {
   switch(category) {
     case ItemCategory.Weapon:

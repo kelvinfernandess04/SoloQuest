@@ -23,7 +23,7 @@ export default function Inventory() {
     name: '', 
     category: ItemCategory.Weapon,
     price: 0,
-    owned: false 
+    owned: true 
   });
   const [showCategoryModal, setShowCategoryModal] = useState(false);
 
