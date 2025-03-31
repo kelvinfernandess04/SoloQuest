@@ -12,9 +12,10 @@ export async function createTable() {
         CREATE TABLE IF NOT EXISTS tbitems (
             id TEXT NOT NULL PRIMARY KEY,
             name TEXT NOT NULL,
-            category TEXT NOT NULL,
+            category_id TEXT NOT NULL,
             price INTEGER NOT NULL,
-            owned BOOLEAN      
+            owned BOOLEAN,
+            FOREIGN KEY (category_id) REFERENCES tbcategories(id)      
         );
 
         CREATE TABLE IF NOT EXISTS tbSales (
@@ -35,7 +36,6 @@ export async function createTable() {
     await cx.execAsync(query);   
     await cx.closeAsync();
 };
-
 interface SaleItem {
     itemId: string;
 }
@@ -108,7 +108,7 @@ export async function getSales() {
 export async function getSaleDetails(saleId: number) {
     const dbCx = await getDbConnection();
     
-    const sale = await dbCx.getAllSync<{
+    const sale = await dbCx.getFirstAsync<{
         id: number;
         saleDate: string;
         total: number;
@@ -118,10 +118,20 @@ export async function getSaleDetails(saleId: number) {
         id: string;
         name: string;
         price: number;
+        category_id: string;
+        category_name: string;
+        category_color: string;
     }>(`
-        SELECT i.id, i.name, i.price 
+        SELECT 
+            i.id, 
+            i.name, 
+            i.price,
+            c.id as category_id,
+            c.name as category_name,
+            c.color as category_color
         FROM tbSaleItems si
         JOIN tbitems i ON si.itemId = i.id
+        JOIN tbcategories c ON i.category_id = c.id
         WHERE si.saleId = ?
     `, [saleId]);
 
@@ -129,6 +139,13 @@ export async function getSaleDetails(saleId: number) {
     
     return {
         ...sale,
-        items
+        items: items.map(item => ({
+            ...item,
+            category: {
+                id: item.category_id,
+                name: item.category_name,
+                color: item.category_color
+            }
+        }))
     };
 }

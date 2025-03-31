@@ -4,7 +4,13 @@ import { GlobalStyle } from '../styles/GlobalStyles';
 import * as dbItemService from '../services/dbItemService';
 import * as dbStoreService from '../services/dbStoreService';
 import { CustomList } from '../components/CustomList';
-import { Item, ItemCategory } from './inventory'; // Adicione a exportação da interface no inventory
+import { Item } from '../services/dbItemService';
+import { Category } from '../services/dbCategoryService';
+
+// Defina o tipo para o item completo
+interface FullItem extends Item {
+  category: Category;
+}
 
 interface Transaction {
   id: number;
@@ -15,11 +21,12 @@ interface Transaction {
 }
 
 export default function Store() {
-  const [storeItems, setStoreItems] = useState<Item[]>([]);
-  const [cart, setCart] = useState<Item[]>([]);
+  const [storeItems, setStoreItems] = useState<FullItem[]>([]);
+  const [cart, setCart] = useState<FullItem[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [showCartModal, setShowCartModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
+  
 
   // Carregar itens e histórico
   useEffect(() => {
@@ -28,10 +35,9 @@ export default function Store() {
   }, []);
 
   const loadItems = async () => {
-    const items = await dbItemService.readItem() as Item[];
+    const items = await dbItemService.readItem(); 
     setStoreItems(items);
   };
-
   const loadTransactions = async () => {
     const sales = await dbStoreService.getSales();
     const transactionsWithType: Transaction[] = sales.map(sale => ({
@@ -81,9 +87,9 @@ export default function Store() {
   const renderStoreItem = ({ item }: { item: Item }) => (
     <View style={GlobalStyle.rewardCard}>
       <View style={[GlobalStyle.categoryTag, getCategoryStyle(item.category)]}>
-        <Text style={{ color: getCategoryStyle(item.category).borderColor, fontSize: 12 }}>
-          {item.category}
-        </Text>
+      <Text style={{ color: getCategoryStyle(item.category).borderColor, fontSize: 12 }}>
+  {item.category.name} {/* Era apenas item.category */}
+</Text>
       </View>
       
       <Text style={{ color: '#E0E5FF', fontSize: 18, marginBottom: 8 }}>
@@ -341,15 +347,9 @@ const styles = StyleSheet.create({
   },
 });
 
-function getCategoryStyle(category: ItemCategory) {
-  switch(category) {
-    case ItemCategory.Weapon:
-      return { backgroundColor: '#FF465520', borderColor: '#FF4655' };
-    case ItemCategory.Armor:
-      return { backgroundColor: '#4CAF5020', borderColor: '#4CAF50' };
-    case ItemCategory.Acessorie:
-      return { backgroundColor: '#9C27B020', borderColor: '#9C27B0' };
-    default:
-      return { backgroundColor: '#607D8B20', borderColor: '#607D8B' };
-  }
+function getCategoryStyle(category: Category) {
+  return { 
+    backgroundColor: `${category.color}20`, 
+    borderColor: category.color 
+  };
 }
