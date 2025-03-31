@@ -18,11 +18,7 @@ export interface Item {
 export async function createTable() {    
     const db = await getDbConnection();
     try {
-      // Primeiro drope a tabela se existir (em desenvolvimento)
-      await db.execAsync('DROP TABLE IF EXISTS tbitems');
-      
-      // Crie a tabela com a estrutura correta
-      await db.execAsync(`CREATE TABLE tbitems (
+      await db.execAsync(`CREATE TABLE IF NOT EXISTS tbitems (
         id TEXT NOT NULL PRIMARY KEY,
         name TEXT NOT NULL,
         category_id TEXT NOT NULL,
@@ -31,7 +27,7 @@ export async function createTable() {
         FOREIGN KEY (category_id) REFERENCES tbcategories(id)
       )`);
       
-      console.log("Tabela tbitems criada com sucesso");
+      console.log("Tabela tbitems carregada com sucesso");
     } finally {
       await db.closeAsync();
     }
