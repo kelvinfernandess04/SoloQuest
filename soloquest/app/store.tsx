@@ -7,7 +7,6 @@ import { CustomList } from '../components/CustomList';
 import { Item } from '../services/dbItemService';
 import { Category } from '../services/dbCategoryService';
 
-// Defina o tipo para o item completo
 interface FullItem extends Item {
   category: Category;
 }
@@ -30,8 +29,18 @@ export default function Store() {
 
   // Carregar itens e histórico
   useEffect(() => {
-    loadItems();
-    loadTransactions();
+    const initializeDatabase = async () => {
+      try {
+        await dbStoreService.createTable();
+        await loadItems();
+        await loadTransactions();
+      } catch (error) {
+        console.error("Erro ao inicializar banco de dados:", error);
+        Alert.alert("Erro", "Não foi possível inicializar o banco de dados");
+      }
+    };
+  
+    initializeDatabase();
   }, []);
 
   const loadItems = async () => {
@@ -39,13 +48,18 @@ export default function Store() {
     setStoreItems(items);
   };
   const loadTransactions = async () => {
-    const sales = await dbStoreService.getSales();
-    const transactionsWithType: Transaction[] = sales.map(sale => ({
-      ...sale,
-      type: 'sell',
-      items: [] // Será carregado detalhes quando necessário
-    }));
-    setTransactions(transactionsWithType);
+    try {
+      const sales = await dbStoreService.getSales();
+      const transactionsWithType: Transaction[] = sales.map(sale => ({
+        ...sale,
+        type: 'sell',
+        items: []
+      }));
+      setTransactions(transactionsWithType);
+    } catch (error) {
+      console.error('Erro ao carregar transações:', error);
+      Alert.alert('Erro', 'Não foi possível carregar o histórico de transações');
+    }
   };
 
   // Adicionar ao carrinho
@@ -198,36 +212,45 @@ export default function Store() {
 
       {/* Modal do Histórico */}
       <Modal visible={showHistoryModal} animationType="slide">
-        <View style={styles.modalContainer}>
-          <Text style={styles.modalTitle}>Histórico de Transações</Text>
+  <View style={styles.modalContainer}>
+    <Text style={styles.modalTitle}>Histórico de Transações</Text>
 
-          <FlatList
-            data={transactions}
-            keyExtractor={(item) => item.id.toString()}
-            renderItem={({ item }) => (
-              <View style={styles.transactionItem}>
-                <Text style={styles.transactionText}>
-                  {new Date(item.saleDate).toLocaleDateString()}
-                </Text>
-                <Text style={styles.transactionText}>
-                  {item.type === 'buy' ? 'Compra' : 'Venda'} - {item.total} moedas
-                </Text>
-              </View>
-            )}
-          />
+    {transactions.length === 0 ? (
+      <Text style={{ color: '#E0E5FF', textAlign: 'center', marginTop: 20 }}>
+        Nenhuma transação encontrada
+      </Text>
+    ) : (
+      <FlatList
+        data={transactions}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={({ item }) => (
+          <View style={styles.transactionItem}>
+            <Text style={styles.transactionText}>
+              Data: {new Date(item.saleDate).toLocaleDateString()}
+            </Text>
+            <Text style={styles.transactionText}>
+              Tipo: {item.type === 'buy' ? 'Compra' : 'Venda'}
+            </Text>
+            <Text style={styles.transactionText}>
+              Total: {item.total} moedas
+            </Text>
+          </View>
+        )}
+      />
+    )}
 
-          <TouchableOpacity
-            style={styles.closeButton}
-            onPress={() => setShowHistoryModal(false)}>
-            <Text style={styles.buttonText}>Fechar</Text>
-          </TouchableOpacity>
-        </View>
-      </Modal>
+    <TouchableOpacity
+      style={styles.closeButton}
+      onPress={() => setShowHistoryModal(false)}>
+      <Text style={styles.buttonText}>Fechar</Text>
+    </TouchableOpacity>
+  </View>
+</Modal>
     </View>
   );
 }
 
-// Estilos (adicione ao seu GlobalStyles ou crie um StoreStyles)
+// Estilos
 const styles = StyleSheet.create({
   tabContainer: {
     flexDirection: 'row',
