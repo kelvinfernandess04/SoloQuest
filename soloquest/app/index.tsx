@@ -95,6 +95,12 @@ export default function Home() {
                   Excluir
                 </Text>
               </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => router.push({ pathname: '/edit', params: { id: item.id } })}
+                style={[HomeStyles.deleteButton, { backgroundColor: '#4E54C8' }]}
+              >
+                <Text style={HomeStyles.deleteButtonText}>Editar</Text>
+              </TouchableOpacity>
             </View>
           </View>
         )}

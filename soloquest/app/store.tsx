@@ -4,7 +4,7 @@ import { GlobalStyle } from '../styles/GlobalStyles';
 import * as dbItemService from '../services/dbItemService';
 import * as dbStoreService from '../services/dbStoreService';
 import { CustomList } from '../components/CustomList';
-import { Item, ItemCategory } from './inventory';
+import { Item } from './inventory';
 
 interface Transaction {
   id: number;
@@ -59,7 +59,7 @@ export default function Store() {
       setTransactions(transactionsWithDetails);
     } catch (error) {
       Alert.alert('Erro', 'Falha ao carregar histórico');
-      console.log(error)
+      console.log(error);
     }
   };
 
@@ -395,16 +395,15 @@ const styles = StyleSheet.create({
   },
 });
 
-// Função auxiliar para estilos de categoria
-function getCategoryStyle(category: ItemCategory) {
-  switch (category) {
-    case ItemCategory.Weapon:
-      return { backgroundColor: '#FF465520', borderColor: '#FF4655' };
-    case ItemCategory.Armor:
-      return { backgroundColor: '#4CAF5020', borderColor: '#4CAF50' };
-    case ItemCategory.Acessorie:
-      return { backgroundColor: '#9C27B020', borderColor: '#9C27B0' };
-    default:
-      return { backgroundColor: '#607D8B20', borderColor: '#607D8B' };
+// Função auxiliar para definir estilos com base na categoria (agora é string)
+function getCategoryStyle(category: string) {
+  const lowerCat = category.toLowerCase();
+  if (lowerCat.includes("arma")) {
+    return { backgroundColor: '#FF465520', borderColor: '#FF4655' };
+  } else if (lowerCat.includes("armadura")) {
+    return { backgroundColor: '#4CAF5020', borderColor: '#4CAF50' };
+  } else if (lowerCat.includes("acessório")) {
+    return { backgroundColor: '#9C27B020', borderColor: '#9C27B0' };
   }
+  return { backgroundColor: '#607D8B20', borderColor: '#607D8B' };
 }
