@@ -4,7 +4,8 @@ import { GlobalStyle } from '../styles/GlobalStyles';
 import * as dbItemService from '../services/dbItemService';
 import * as dbStoreService from '../services/dbStoreService';
 import { CustomList } from '../components/CustomList';
-import { Item, ItemCategory } from './inventory'; // Adicione a exportação da interface no inventory
+import { Item, ItemCategory } from './inventory';
+
 
 interface Transaction {
   id: number;
@@ -21,11 +22,20 @@ export default function Store() {
   const [showCartModal, setShowCartModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
 
-  // Carregar itens e histórico
   useEffect(() => {
-    loadItems();
-    loadTransactions();
+    const fetchData = async () => {
+      try {
+        await loadItems();
+        await loadTransactions();
+        dbStoreService.createTable();
+      } catch (error) {
+        console.log(error);
+      }
+    };
+
+    fetchData();
   }, []);
+
 
   const loadItems = async () => {
     const items = await dbItemService.readItem() as Item[];
@@ -33,51 +43,62 @@ export default function Store() {
   };
 
   const loadTransactions = async () => {
-    const sales = await dbStoreService.getSales();
-    const transactionsWithType: Transaction[] = sales.map(sale => ({
-      ...sale,
-      type: 'sell',
-      items: [] // Será carregado detalhes quando necessário
-    }));
-    setTransactions(transactionsWithType);
+    try {
+
+      const sales = await dbStoreService.getSales();
+      const transactionsWithDetails = await Promise.all(
+        sales.map(async (sale) => {
+          const details = await dbStoreService.getSaleDetails(sale.id);
+          return {
+            ...sale,
+            items: details.items
+          };
+        })
+      );
+      setTransactions(transactionsWithDetails);
+    } catch (error) {
+      Alert.alert('Erro', 'Falha ao carregar histórico');
+    }
   };
 
-  // Adicionar ao carrinho
   const handleAddToCart = (item: Item) => {
+    const isItemInCart = cart.some(cartItem => cartItem.id === item.id);
+
+    if (isItemInCart) {
+      Alert.alert('Aviso', 'Este item já está no carrinho!');
+      return;
+    }
     setCart([...cart, item]);
   };
 
-  // Remover do carrinho
   const handleRemoveFromCart = (index: number) => {
     const newCart = [...cart];
     newCart.splice(index, 1);
     setCart(newCart);
   };
 
-  // Finalizar compra/venda
   const handleCheckout = async (type: 'buy' | 'sell') => {
     try {
+
+
+
       if (type === 'buy') {
-        // Lógica de compra
-        await Promise.all(cart.map(item => 
-          dbItemService.updateItem({ ...item, owned: true })
-        ));
+        await dbStoreService.createPurchase(cart);
       } else {
-        // Lógica de venda
         await dbStoreService.createSale(cart.map(item => ({ itemId: item.id })));
       }
 
       Alert.alert('Sucesso', type === 'buy' ? 'Compra realizada!' : 'Venda realizada!');
       setCart([]);
       setShowCartModal(false);
-      loadItems();
-      loadTransactions();
+      await loadItems();
+      await loadTransactions();
     } catch (error) {
-      Alert.alert('Erro');
+      console.error('Erro ao realizar transação:', error);
+      Alert.alert('Erro, verifique o console');
     }
   };
 
-  // Renderizar item da loja
   const renderStoreItem = ({ item }: { item: Item }) => (
     <View style={GlobalStyle.rewardCard}>
       <View style={[GlobalStyle.categoryTag, getCategoryStyle(item.category)]}>
@@ -85,11 +106,11 @@ export default function Store() {
           {item.category}
         </Text>
       </View>
-      
+
       <Text style={{ color: '#E0E5FF', fontSize: 18, marginBottom: 8 }}>
         {item.name}
       </Text>
-      
+
       <Text style={{ color: '#7C83FD', marginBottom: 8 }}>
         Preço: {item.price} moedas
       </Text>
@@ -114,7 +135,6 @@ export default function Store() {
     <View style={GlobalStyle.container}>
       <Text style={GlobalStyle.titulo}>Loja do Caçador</Text>
 
-      {/* Abas de Compra/Venda */}
       <View style={styles.tabContainer}>
         <TouchableOpacity
           style={[styles.tabButton, { backgroundColor: '#4CAF5050' }]}
@@ -129,7 +149,6 @@ export default function Store() {
         </TouchableOpacity>
       </View>
 
-      {/* Lista de Itens para Compra */}
       <Text style={styles.sectionTitle}>Itens Disponíveis para Compra</Text>
       <CustomList
         data={storeItems.filter(item => !item.owned)}
@@ -138,7 +157,6 @@ export default function Store() {
         contentContainerStyle={{ paddingBottom: 20 }}
       />
 
-      {/* Lista de Itens para Venda */}
       <Text style={styles.sectionTitle}>Itens Disponíveis para Venda</Text>
       <CustomList
         data={storeItems.filter(item => item.owned)}
@@ -147,7 +165,6 @@ export default function Store() {
         contentContainerStyle={{ paddingBottom: 20 }}
       />
 
-      {/* Modal do Carrinho */}
       <Modal visible={showCartModal} animationType="slide">
         <View style={styles.modalContainer}>
           <Text style={styles.modalTitle}>
@@ -156,7 +173,7 @@ export default function Store() {
 
           <FlatList
             data={cart}
-            keyExtractor={(item, index) => index.toString()}
+            keyExtractor={(_, index) => index.toString()}
             renderItem={({ item, index }) => (
               <View style={styles.cartItem}>
                 <Text style={styles.cartText}>{item.name}</Text>
@@ -190,7 +207,6 @@ export default function Store() {
         </View>
       </Modal>
 
-      {/* Modal do Histórico */}
       <Modal visible={showHistoryModal} animationType="slide">
         <View style={styles.modalContainer}>
           <Text style={styles.modalTitle}>Histórico de Transações</Text>
@@ -205,6 +221,9 @@ export default function Store() {
                 </Text>
                 <Text style={styles.transactionText}>
                   {item.type === 'buy' ? 'Compra' : 'Venda'} - {item.total} moedas
+                </Text>
+                <Text style={styles.transactionText}>
+                  Itens: {item.items.map(i => i.name).join(', ')}
                 </Text>
               </View>
             )}
@@ -343,7 +362,7 @@ const styles = StyleSheet.create({
 
 // Adicione esta função auxiliar no mesmo arquivo ou em GlobalStyles
 function getCategoryStyle(category: ItemCategory) {
-  switch(category) {
+  switch (category) {
     case ItemCategory.Weapon:
       return { backgroundColor: '#FF465520', borderColor: '#FF4655' };
     case ItemCategory.Armor:

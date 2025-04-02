@@ -19,11 +19,11 @@ export interface Item {
 
 export default function Inventory() {
   const [items, setItems] = useState<Item[]>([]);
-  const [newItem, setNewItem] = useState<Omit<Item, 'id'>>({ 
-    name: '', 
+  const [newItem, setNewItem] = useState<Omit<Item, 'id'>>({
+    name: '',
     category: ItemCategory.Weapon,
     price: 0,
-    owned: false 
+    owned: true
   });
   const [showCategoryModal, setShowCategoryModal] = useState(false);
 
@@ -43,18 +43,18 @@ export default function Inventory() {
 
   const handleAddItem = async () => {
     if (!newItem.name.trim()) return;
-    
+
     try {
       const itemToAdd = {
         ...newItem,
         id: Math.random().toString(36).substring(7)
       };
-      
+
       const success = await dbItemService.createItem({
         ...itemToAdd,
         category: itemToAdd.category.toString()
       });
-      
+
       if (success) {
         setItems([...items, itemToAdd]);
         setNewItem({ name: '', category: ItemCategory.Weapon, price: 0, owned: true });
@@ -77,7 +77,7 @@ export default function Inventory() {
   };
 
   const getCategoryStyle = (category: ItemCategory) => {
-    switch(category) {
+    switch (category) {
       case ItemCategory.Weapon:
         return { backgroundColor: '#FF465520', borderColor: '#FF4655' };
       case ItemCategory.Armor:
@@ -92,7 +92,7 @@ export default function Inventory() {
   return (
     <View style={GlobalStyle.container}>
       <Text style={GlobalStyle.titulo}>Tesouro do Caçador</Text>
-      
+
       {/* Formulário de adição */}
       <View style={styles.formContainer}>
         <TextInput
@@ -100,20 +100,20 @@ export default function Inventory() {
           placeholder="Nome do item"
           placeholderTextColor="#7C83FD80"
           value={newItem.name}
-          onChangeText={text => setNewItem({...newItem, name: text})}
+          onChangeText={text => setNewItem({ ...newItem, name: text })}
         />
-        
+
         <TextInput
           style={styles.input}
           placeholder="Preço"
           placeholderTextColor="#7C83FD80"
           keyboardType="numeric"
           value={newItem.price > 0 ? newItem.price.toString() : ''}
-          onChangeText={text => setNewItem({...newItem, price: Number(text) || 0})}
+          onChangeText={text => setNewItem({ ...newItem, price: Number(text) || 0 })}
         />
-        
+
         {/* Seletor de Categoria */}
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.categorySelector}
           onPress={() => setShowCategoryModal(true)}
         >
@@ -121,7 +121,7 @@ export default function Inventory() {
             Categoria: {newItem.category}
           </Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity
           style={[styles.addButton, !newItem.name.trim() && styles.disabledButton]}
           onPress={handleAddItem}
@@ -130,7 +130,7 @@ export default function Inventory() {
           <Text style={styles.addButtonText}>Adicionar Item</Text>
         </TouchableOpacity>
       </View>
-      
+
       {/* Modal de Seleção de Categoria */}
       <Modal
         visible={showCategoryModal}
@@ -141,7 +141,7 @@ export default function Inventory() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Selecione a Categoria</Text>
-            
+
             {Object.values(ItemCategory).map((category) => (
               <TouchableOpacity
                 key={category}
@@ -150,14 +150,14 @@ export default function Inventory() {
                   newItem.category === category && styles.categoryOptionSelected
                 ]}
                 onPress={() => {
-                  setNewItem({...newItem, category});
+                  setNewItem({ ...newItem, category });
                   setShowCategoryModal(false);
                 }}
               >
                 <Text style={styles.categoryOptionText}>{category}</Text>
               </TouchableOpacity>
             ))}
-            
+
             <TouchableOpacity
               style={styles.modalCloseButton}
               onPress={() => setShowCategoryModal(false)}
@@ -167,10 +167,10 @@ export default function Inventory() {
           </View>
         </View>
       </Modal>
-      
-      {/* Lista de itens */}
+
+      {/* Lista de itens filtrados */}
       <FlatList
-        data={items}
+        data={items.filter(item => item.owned)}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <View style={GlobalStyle.rewardCard}>
@@ -179,17 +179,17 @@ export default function Inventory() {
                 {item.category}
               </Text>
             </View>
-            
+
             <Text style={{ color: '#E0E5FF', fontSize: 18, fontWeight: 'bold', marginBottom: 8 }}>
               {item.name}
             </Text>
-            
+
             <Text style={{ color: '#7C83FD', marginBottom: 8 }}>
               Preço: <Text style={{ color: '#E0E5FF' }}>{item.price} moedas</Text>
             </Text>
-            
+
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                            
+
               <TouchableOpacity
                 style={{
                   backgroundColor: '#FF465520',
@@ -206,14 +206,15 @@ export default function Inventory() {
           </View>
         )}
       />
+
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   formContainer: {
-    backgroundColor: '#161B33', 
-    padding: 16, 
+    backgroundColor: '#161B33',
+    padding: 16,
     borderRadius: 12,
     marginBottom: 16,
     borderWidth: 1,
@@ -249,7 +250,7 @@ const styles = StyleSheet.create({
     opacity: 0.6
   },
   addButtonText: {
-    color: '#E0E5FF', 
+    color: '#E0E5FF',
     fontWeight: 'bold'
   },
   modalOverlay: {
