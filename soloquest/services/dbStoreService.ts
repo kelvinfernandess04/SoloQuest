@@ -12,10 +12,9 @@ export async function createTable() {
         CREATE TABLE IF NOT EXISTS tbitems (
             id TEXT NOT NULL PRIMARY KEY,
             name TEXT NOT NULL,
-            category_id TEXT NOT NULL,
+            category TEXT NOT NULL,
             price INTEGER NOT NULL,
-            owned BOOLEAN,
-            FOREIGN KEY (category_id) REFERENCES tbcategories(id)      
+            owned BOOLEAN      
         );
 
         CREATE TABLE IF NOT EXISTS tbSales (
@@ -36,96 +35,80 @@ export async function createTable() {
     await cx.execAsync(query);   
     await cx.closeAsync();
 };
+
 interface SaleItem {
     itemId: string;
 }
 
-//Psiu kelvim, adicionei uns logs pra ver a transação
 export async function createSale(items: SaleItem[]) {
     const dbCx = await getDbConnection();
     
     try {
-      console.log('Iniciando transação de venda...'); // LOG
-      await dbCx.execAsync('BEGIN TRANSACTION');
-  
-      let total = 0;
-      console.log('Itens para vender:', items); // LOG
-      
-      for (const item of items) {
-        const results = await dbCx.getAllAsync<{ price: number, owned: boolean }>(
-          'SELECT price, owned FROM tbitems WHERE id = ?',
-          [item.itemId]
-        );
-        
-        const itemInfo = results[0];
-        console.log('Informações do item:', itemInfo); // LOG
-        
-        if (!itemInfo || !itemInfo.owned) {
-          throw new Error(`Item ${item.itemId} não disponível para venda`);
-        }
-        
-        total += itemInfo.price;
-      }   
-  
-      console.log('Total da venda:', total); // LOG
-      
-      const saleDate = new Date().toISOString();
-      const saleResult = await dbCx.runAsync(
-        'INSERT INTO tbSales (saleDate, total) VALUES (?, ?)',
-        [saleDate, total]
-      );
-      const saleId = saleResult.lastInsertRowId;
-      console.log('Venda criada com ID:', saleId); // LOG
-  
-      for (const item of items) {
-        await dbCx.runAsync(
-          'INSERT INTO tbSaleItems (saleId, itemId) VALUES (?, ?)',
-          [saleId, item.itemId]
-        );
-        
-        await dbCx.runAsync(
-          'UPDATE tbitems SET owned = 0 WHERE id = ?',
-          [item.itemId]
-        );
-      }
-  
-      await dbCx.execAsync('COMMIT');
-      console.log('Venda concluída com sucesso'); // LOG
-      return { success: true, saleId };
-    } catch (error) {
-      console.error('Erro na venda:', error); // LOG
-      await dbCx.execAsync('ROLLBACK');
-      throw error;
-    } finally {
-      await dbCx.closeAsync();
-    }
-  }
+        await dbCx.execAsync('BEGIN TRANSACTION');
 
-  export async function getSales() {
-    const db = await getDbConnection();
-    try {
-      const sales = await db.getAllAsync<{
+        // Verifica disponibilidade e calcula total
+        let total = 0;
+        for (const item of items) {
+            const results = await dbCx.getAllAsync<{ price: number, owned: boolean }>(
+                'SELECT price, owned FROM tbitems WHERE id = ?',
+                [item.itemId]
+            );
+            
+            const itemInfo = results[0]; // Pega o primeiro resultado do array
+            
+            if (!itemInfo || !itemInfo.owned) {
+                throw new Error(`Item ${item.itemId} não disponível para venda`);
+            }
+            
+            total += itemInfo.price;
+        }   
+
+        // Insere a venda principal
+        const saleDate = new Date().toISOString();
+        const saleResult = await dbCx.runAsync(
+            'INSERT INTO tbSales (saleDate, total) VALUES (?, ?)',
+            [saleDate, total]
+        );
+        const saleId = saleResult.lastInsertRowId;
+
+        // Insere itens da venda e atualiza estoque
+        for (const item of items) {
+            await dbCx.runAsync(
+                'INSERT INTO tbSaleItems (saleId, itemId) VALUES (?, ?)',
+                [saleId, item.itemId]
+            );
+            
+            await dbCx.runAsync(
+                'UPDATE tbitems SET owned = 0 WHERE id = ?',
+                [item.itemId]
+            );
+        }
+
+        await dbCx.execAsync('COMMIT');
+        return { success: true, saleId };
+    } catch (error) {
+        await dbCx.execAsync('ROLLBACK');
+        throw error;
+    } finally {
+        await dbCx.closeAsync();
+    }
+}
+
+export async function getSales() {
+    const dbCx = await getDbConnection();
+    const sales = await dbCx.getAllAsync<{
         id: number;
         saleDate: string;
         total: number;
-      }>('SELECT * FROM tbSales ORDER BY saleDate DESC');
-      return sales;
-    } catch (error) {
-      console.error('Erro ao buscar vendas:', error);
-      throw error;
-    } finally {
-      try {
-        await db.closeAsync();
-      } catch (closeError) {
-        console.error('Erro ao fechar conexão:', closeError);
-      }
-    }
-  }
+    }>('SELECT * FROM tbSales ORDER BY saleDate DESC');
+    await dbCx.closeAsync();
+    return sales;
+}
 
 export async function getSaleDetails(saleId: number) {
     const dbCx = await getDbConnection();
     
-    const sale = await dbCx.getFirstAsync<{
+    const sale = await dbCx.getAllSync<{
         id: number;
         saleDate: string;
         total: number;
@@ -135,20 +118,10 @@ export async function getSaleDetails(saleId: number) {
         id: string;
         name: string;
         price: number;
-        category_id: string;
-        category_name: string;
-        category_color: string;
     }>(`
-        SELECT 
-            i.id, 
-            i.name, 
-            i.price,
-            c.id as category_id,
-            c.name as category_name,
-            c.color as category_color
+        SELECT i.id, i.name, i.price 
         FROM tbSaleItems si
         JOIN tbitems i ON si.itemId = i.id
-        JOIN tbcategories c ON i.category_id = c.id
         WHERE si.saleId = ?
     `, [saleId]);
 
@@ -156,13 +129,6 @@ export async function getSaleDetails(saleId: number) {
     
     return {
         ...sale,
-        items: items.map(item => ({
-            ...item,
-            category: {
-                id: item.category_id,
-                name: item.category_name,
-                color: item.category_color
-            }
-        }))
+        items
     };
 }

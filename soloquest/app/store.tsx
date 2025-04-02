@@ -4,12 +4,7 @@ import { GlobalStyle } from '../styles/GlobalStyles';
 import * as dbItemService from '../services/dbItemService';
 import * as dbStoreService from '../services/dbStoreService';
 import { CustomList } from '../components/CustomList';
-import { Item } from '../services/dbItemService';
-import { Category } from '../services/dbCategoryService';
-
-interface FullItem extends Item {
-  category: Category;
-}
+import { Item, ItemCategory } from './inventory'; // Adicione a exportação da interface no inventory
 
 interface Transaction {
   id: number;
@@ -20,46 +15,31 @@ interface Transaction {
 }
 
 export default function Store() {
-  const [storeItems, setStoreItems] = useState<FullItem[]>([]);
-  const [cart, setCart] = useState<FullItem[]>([]);
+  const [storeItems, setStoreItems] = useState<Item[]>([]);
+  const [cart, setCart] = useState<Item[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [showCartModal, setShowCartModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
-  
 
   // Carregar itens e histórico
   useEffect(() => {
-    const initializeDatabase = async () => {
-      try {
-        await dbStoreService.createTable();
-        await loadItems();
-        await loadTransactions();
-      } catch (error) {
-        console.error("Erro ao inicializar banco de dados:", error);
-        Alert.alert("Erro", "Não foi possível inicializar o banco de dados");
-      }
-    };
-  
-    initializeDatabase();
+    loadItems();
+    loadTransactions();
   }, []);
 
   const loadItems = async () => {
-    const items = await dbItemService.readItem(); 
+    const items = await dbItemService.readItem() as Item[];
     setStoreItems(items);
   };
+
   const loadTransactions = async () => {
-    try {
-      const sales = await dbStoreService.getSales();
-      const transactionsWithType: Transaction[] = sales.map(sale => ({
-        ...sale,
-        type: 'sell',
-        items: []
-      }));
-      setTransactions(transactionsWithType);
-    } catch (error) {
-      console.error('Erro ao carregar transações:', error);
-      Alert.alert('Erro', 'Não foi possível carregar o histórico de transações');
-    }
+    const sales = await dbStoreService.getSales();
+    const transactionsWithType: Transaction[] = sales.map(sale => ({
+      ...sale,
+      type: 'sell',
+      items: [] // Será carregado detalhes quando necessário
+    }));
+    setTransactions(transactionsWithType);
   };
 
   // Adicionar ao carrinho
@@ -101,9 +81,9 @@ export default function Store() {
   const renderStoreItem = ({ item }: { item: Item }) => (
     <View style={GlobalStyle.rewardCard}>
       <View style={[GlobalStyle.categoryTag, getCategoryStyle(item.category)]}>
-      <Text style={{ color: getCategoryStyle(item.category).borderColor, fontSize: 12 }}>
-  {item.category.name} {/* Era apenas item.category */}
-</Text>
+        <Text style={{ color: getCategoryStyle(item.category).borderColor, fontSize: 12 }}>
+          {item.category}
+        </Text>
       </View>
       
       <Text style={{ color: '#E0E5FF', fontSize: 18, marginBottom: 8 }}>
@@ -212,45 +192,36 @@ export default function Store() {
 
       {/* Modal do Histórico */}
       <Modal visible={showHistoryModal} animationType="slide">
-  <View style={styles.modalContainer}>
-    <Text style={styles.modalTitle}>Histórico de Transações</Text>
+        <View style={styles.modalContainer}>
+          <Text style={styles.modalTitle}>Histórico de Transações</Text>
 
-    {transactions.length === 0 ? (
-      <Text style={{ color: '#E0E5FF', textAlign: 'center', marginTop: 20 }}>
-        Nenhuma transação encontrada
-      </Text>
-    ) : (
-      <FlatList
-        data={transactions}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <View style={styles.transactionItem}>
-            <Text style={styles.transactionText}>
-              Data: {new Date(item.saleDate).toLocaleDateString()}
-            </Text>
-            <Text style={styles.transactionText}>
-              Tipo: {item.type === 'buy' ? 'Compra' : 'Venda'}
-            </Text>
-            <Text style={styles.transactionText}>
-              Total: {item.total} moedas
-            </Text>
-          </View>
-        )}
-      />
-    )}
+          <FlatList
+            data={transactions}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={({ item }) => (
+              <View style={styles.transactionItem}>
+                <Text style={styles.transactionText}>
+                  {new Date(item.saleDate).toLocaleDateString()}
+                </Text>
+                <Text style={styles.transactionText}>
+                  {item.type === 'buy' ? 'Compra' : 'Venda'} - {item.total} moedas
+                </Text>
+              </View>
+            )}
+          />
 
-    <TouchableOpacity
-      style={styles.closeButton}
-      onPress={() => setShowHistoryModal(false)}>
-      <Text style={styles.buttonText}>Fechar</Text>
-    </TouchableOpacity>
-  </View>
-</Modal>
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={() => setShowHistoryModal(false)}>
+            <Text style={styles.buttonText}>Fechar</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
     </View>
   );
 }
 
-// Estilos
+// Estilos (adicione ao seu GlobalStyles ou crie um StoreStyles)
 const styles = StyleSheet.create({
   tabContainer: {
     flexDirection: 'row',
@@ -370,9 +341,15 @@ const styles = StyleSheet.create({
   },
 });
 
-function getCategoryStyle(category: Category) {
-  return { 
-    backgroundColor: `${category.color}20`, 
-    borderColor: category.color 
-  };
+function getCategoryStyle(category: ItemCategory) {
+  switch(category) {
+    case ItemCategory.Weapon:
+      return { backgroundColor: '#FF465520', borderColor: '#FF4655' };
+    case ItemCategory.Armor:
+      return { backgroundColor: '#4CAF5020', borderColor: '#4CAF50' };
+    case ItemCategory.Acessorie:
+      return { backgroundColor: '#9C27B020', borderColor: '#9C27B0' };
+    default:
+      return { backgroundColor: '#607D8B20', borderColor: '#607D8B' };
+  }
 }

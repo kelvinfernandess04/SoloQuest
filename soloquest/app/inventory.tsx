@@ -1,119 +1,69 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, TextInput, Modal, StyleSheet, Alert } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, TextInput, Modal, StyleSheet } from 'react-native';
 import { GlobalStyle } from '../styles/GlobalStyles';
 import * as dbItemService from '../services/dbItemService';
-import * as dbCategoryService from '../services/dbCategoryService';
+
+export enum ItemCategory {
+  Weapon = "Arma",
+  Armor = "Armadura",
+  Acessorie = "Acessório"
+}
+
+export interface Item {
+  id: string;
+  name: string;
+  category: ItemCategory;
+  price: number;
+  owned: boolean;
+}
 
 export default function Inventory() {
-  const [items, setItems] = useState<dbItemService.Item[]>([]);
-  const [categories, setCategories] = useState<dbCategoryService.Category[]>([]);
-  const [newItem, setNewItem] = useState<Omit<dbItemService.Item, 'id'>>({ 
+  const [items, setItems] = useState<Item[]>([]);
+  const [newItem, setNewItem] = useState<Omit<Item, 'id'>>({ 
     name: '', 
-    category: { id: '', name: '', color: '#FFFFFF' },
+    category: ItemCategory.Weapon,
     price: 0,
-    owned: false 
+    owned: true 
   });
-  const [newCategory, setNewCategory] = useState<Omit<dbCategoryService.Category, 'id'>>({
-    name: '',
-    color: '#7C83FD'
-  });
-  
   const [showCategoryModal, setShowCategoryModal] = useState(false);
-  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
 
-  const loadData = async () => {
+  const loadItems = async () => {
     try {
-      await dbCategoryService.createCategoriesTable();
       await dbItemService.createTable();
-      
-      const loadedCategories = await dbCategoryService.readCategories();
-      const loadedItems = await dbItemService.readItem();
-      
-      setCategories(loadedCategories);
-      setItems(loadedItems);
-      
-      if (loadedCategories.length > 0) {
-        setNewItem(prev => ({
-          ...prev,
-          category: loadedCategories[0]
-        }));
-      }
+      const dbItems = await dbItemService.readItem();
+      setItems(dbItems as Item[]);
     } catch (error) {
-      console.error('Error loading data:', error);
-      Alert.alert('Erro', 'Não foi possível carregar os dados');
+      console.error('Erro ao carregar itens:', error);
     }
   };
 
   useEffect(() => {
-    loadData();
+    loadItems();
   }, []);
 
   const handleAddItem = async () => {
-    if (!newItem.name.trim()) {
-      Alert.alert('Atenção', 'Digite um nome para o item');
-      return;
-    }
-
-    if (!newItem.category.id) {
-      Alert.alert('Atenção', 'Selecione uma categoria');
-      return;
-    }
-
+    if (!newItem.name.trim()) return;
+    
     try {
       const itemToAdd = {
         ...newItem,
         id: Math.random().toString(36).substring(7)
       };
       
-      const success = await dbItemService.createItem(itemToAdd);
+      const success = await dbItemService.createItem({
+        ...itemToAdd,
+        category: itemToAdd.category.toString()
+      });
       
       if (success) {
         setItems([...items, itemToAdd]);
-        setNewItem({ 
-          name: '', 
-          category: categories.length > 0 ? categories[0] : { id: '', name: '', color: '#FFFFFF' },
-          price: 0, 
-          owned: false 
-        });
+        setNewItem({ name: '', category: ItemCategory.Weapon, price: 0, owned: true });
       }
     } catch (error) {
-      console.error('Error adding item:', error);
-      Alert.alert('Erro', 'Não foi possível adicionar o item');
+      console.error('Erro ao adicionar item:', error);
     }
   };
 
-  const handleAddCategory = async () => {
-    if (!newCategory.name.trim()) {
-      Alert.alert('Atenção', 'Digite um nome para a categoria');
-      return;
-    }
-
-    try {
-      const categoryToAdd = {
-        ...newCategory,
-        id: Math.random().toString(36).substring(7)
-      };
-      
-      const success = await dbCategoryService.createCategory(categoryToAdd);
-      
-      if (success) {
-        setCategories([...categories, categoryToAdd]);
-        setNewCategory({ name: '', color: '#7C83FD' });
-        setShowAddCategoryModal(false);
-        
-        // Se era a primeira categoria, atualiza o novo item
-        if (categories.length === 0) {
-          setNewItem(prev => ({
-            ...prev,
-            category: categoryToAdd
-          }));
-        }
-      }
-    } catch (error) {
-      console.error('Error adding category:', error);
-      Alert.alert('Erro', 'Não foi possível adicionar a categoria');
-    }
-  };
 
   const handleDeleteItem = async (id: string) => {
     try {
@@ -122,65 +72,28 @@ export default function Inventory() {
         setItems(items.filter(item => item.id !== id));
       }
     } catch (error) {
-      console.error('Error deleting item:', error);
-      Alert.alert('Erro', 'Não foi possível remover o item');
+      console.error('Erro ao remover item:', error);
     }
   };
 
-  const handleDeleteCategory = async (id: string) => {
-    // Verifica se a categoria está em uso
-    const isInUse = items.some(item => item.category.id === id);
-    
-    if (isInUse) {
-      Alert.alert(
-        'Categoria em uso',
-        'Esta categoria está sendo usada por algum item e não pode ser removida.',
-        [{ text: 'OK' }]
-      );
-      return;
+  const getCategoryStyle = (category: ItemCategory) => {
+    switch(category) {
+      case ItemCategory.Weapon:
+        return { backgroundColor: '#FF465520', borderColor: '#FF4655' };
+      case ItemCategory.Armor:
+        return { backgroundColor: '#4CAF5020', borderColor: '#4CAF50' };
+      case ItemCategory.Acessorie:
+        return { backgroundColor: '#9C27B020', borderColor: '#9C27B0' };
+      default:
+        return { backgroundColor: '#607D8B20', borderColor: '#607D8B' };
     }
-    
-    try {
-      const success = await dbCategoryService.deleteCategory(id);
-      if (success) {
-        setCategories(categories.filter(cat => cat.id !== id));
-        
-        // Se a categoria removida era a selecionada, seleciona a primeira disponível
-        if (newItem.category.id === id) {
-          setNewItem(prev => ({
-            ...prev,
-            category: categories.length > 1 ? 
-              categories.find(c => c.id !== id) || { id: '', name: '', color: '#FFFFFF' } : 
-              { id: '', name: '', color: '#FFFFFF' }
-          }));
-        }
-      }
-    } catch (error) {
-      console.error('Error deleting category:', error);
-      Alert.alert('Erro', 'Não foi possível remover a categoria');
-    }
-  };
-
-  const getCategoryStyle = (category: dbCategoryService.Category) => {
-    return { 
-      backgroundColor: `${category.color}20`, 
-      borderColor: category.color 
-    };
   };
 
   return (
     <View style={GlobalStyle.container}>
       <Text style={GlobalStyle.titulo}>Tesouro do Caçador</Text>
       
-      {/* Botão para gerenciar categorias */}
-      <TouchableOpacity
-        style={styles.manageCategoriesButton}
-        onPress={() => setShowAddCategoryModal(true)}
-      >
-        <Text style={styles.manageCategoriesButtonText}>Gerenciar Categorias</Text>
-      </TouchableOpacity>
-      
-      {/* Formulário de adição de item */}
+      {/* Formulário de adição */}
       <View style={styles.formContainer}>
         <TextInput
           style={styles.input}
@@ -203,17 +116,16 @@ export default function Inventory() {
         <TouchableOpacity 
           style={styles.categorySelector}
           onPress={() => setShowCategoryModal(true)}
-          disabled={categories.length === 0}
         >
-          <Text style={[styles.categorySelectorText, categories.length === 0 && { color: '#7C83FD80' }]}>
-            {categories.length > 0 ? `Categoria: ${newItem.category.name}` : 'Nenhuma categoria disponível'}
+          <Text style={styles.categorySelectorText}>
+            Categoria: {newItem.category}
           </Text>
         </TouchableOpacity>
         
         <TouchableOpacity
-          style={[styles.addButton, (!newItem.name.trim() || categories.length === 0) && styles.disabledButton]}
+          style={[styles.addButton, !newItem.name.trim() && styles.disabledButton]}
           onPress={handleAddItem}
-          disabled={!newItem.name.trim() || categories.length === 0}
+          disabled={!newItem.name.trim()}
         >
           <Text style={styles.addButtonText}>Adicionar Item</Text>
         </TouchableOpacity>
@@ -230,21 +142,19 @@ export default function Inventory() {
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Selecione a Categoria</Text>
             
-            {categories.map((category) => (
+            {Object.values(ItemCategory).map((category) => (
               <TouchableOpacity
-                key={category.id}
+                key={category}
                 style={[
                   styles.categoryOption,
-                  newItem.category.id === category.id && styles.categoryOptionSelected,
-                  { borderColor: category.color }
+                  newItem.category === category && styles.categoryOptionSelected
                 ]}
                 onPress={() => {
                   setNewItem({...newItem, category});
                   setShowCategoryModal(false);
                 }}
               >
-                <View style={[styles.categoryColorIndicator, { backgroundColor: category.color }]} />
-                <Text style={styles.categoryOptionText}>{category.name}</Text>
+                <Text style={styles.categoryOptionText}>{category}</Text>
               </TouchableOpacity>
             ))}
             
@@ -258,70 +168,6 @@ export default function Inventory() {
         </View>
       </Modal>
       
-      {/* Modal de Adição de Categoria */}
-      <Modal
-        visible={showAddCategoryModal}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowAddCategoryModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Gerenciar Categorias</Text>
-            
-            {/* Formulário para nova categoria */}
-            <TextInput
-              style={styles.input}
-              placeholder="Nome da categoria"
-              placeholderTextColor="#7C83FD80"
-              value={newCategory.name}
-              onChangeText={text => setNewCategory({...newCategory, name: text})}
-            />
-            
-            <TextInput
-              style={styles.input}
-              placeholder="Cor (ex: #FF4655)"
-              placeholderTextColor="#7C83FD80"
-              value={newCategory.color}
-              onChangeText={text => setNewCategory({...newCategory, color: text})}
-            />
-            
-            <TouchableOpacity
-              style={[styles.addButton, !newCategory.name.trim() && styles.disabledButton]}
-              onPress={handleAddCategory}
-              disabled={!newCategory.name.trim()}
-            >
-              <Text style={styles.addButtonText}>Adicionar Categoria</Text>
-            </TouchableOpacity>
-            
-            {/* Lista de categorias existentes */}
-            <FlatList
-              data={categories}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <View style={[styles.categoryItem, { borderColor: item.color }]}>
-                  <View style={[styles.categoryColorIndicator, { backgroundColor: item.color }]} />
-                  <Text style={styles.categoryItemText}>{item.name}</Text>
-                  <TouchableOpacity
-                    onPress={() => handleDeleteCategory(item.id)}
-                  >
-                    <Text style={{ color: '#FF4655' }}>Remover</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-              style={{ maxHeight: 200, marginTop: 16 }}
-            />
-            
-            <TouchableOpacity
-              style={styles.modalCloseButton}
-              onPress={() => setShowAddCategoryModal(false)}
-            >
-              <Text style={styles.modalCloseButtonText}>Fechar</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-      
       {/* Lista de itens */}
       <FlatList
         data={items}
@@ -329,8 +175,8 @@ export default function Inventory() {
         renderItem={({ item }) => (
           <View style={GlobalStyle.rewardCard}>
             <View style={[GlobalStyle.categoryTag, getCategoryStyle(item.category)]}>
-              <Text style={{ color: item.category.color, fontSize: 12 }}>
-                {item.category.name}
+              <Text style={{ color: getCategoryStyle(item.category).borderColor, fontSize: 12 }}>
+                {item.category}
               </Text>
             </View>
             
@@ -343,13 +189,7 @@ export default function Inventory() {
             </Text>
             
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Text style={{ 
-                color: item.owned ? '#4CAF50' : '#FF4655',
-                alignSelf: 'center'
-              }}>
-                {item.owned ? 'Possuído' : 'Não Possuído'}
-              </Text>
-              
+                            
               <TouchableOpacity
                 style={{
                   backgroundColor: '#FF465520',
@@ -433,21 +273,19 @@ const styles = StyleSheet.create({
     textAlign: 'center'
   },
   categoryOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
     padding: 12,
     borderRadius: 8,
     marginBottom: 8,
-    backgroundColor: '#0A0F24',
-    borderWidth: 1
+    backgroundColor: '#0A0F24'
   },
   categoryOptionSelected: {
-    backgroundColor: '#7C83FD30'
+    backgroundColor: '#7C83FD30',
+    borderWidth: 1,
+    borderColor: '#7C83FD'
   },
   categoryOptionText: {
     color: '#E0E5FF',
-    marginLeft: 12,
-    flex: 1
+    textAlign: 'center'
   },
   modalCloseButton: {
     marginTop: 12,
@@ -460,37 +298,5 @@ const styles = StyleSheet.create({
   modalCloseButtonText: {
     color: '#FF4655',
     textAlign: 'center'
-  },
-  manageCategoriesButton: {
-    backgroundColor: '#2A2F4D',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#7C83FD30'
-  },
-  manageCategoriesButtonText: {
-    color: '#7C83FD',
-    fontWeight: 'bold'
-  },
-  categoryItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
-    backgroundColor: '#0A0F24',
-    borderWidth: 1
-  },
-  categoryColorIndicator: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-  },
-  categoryItemText: {
-    marginLeft: 12,
-    flex: 1,
-    color: '#E0E5FF'
   }
 });
