@@ -6,7 +6,6 @@ import * as dbStoreService from '../services/dbStoreService';
 import { CustomList } from '../components/CustomList';
 import { Item, ItemCategory } from './inventory';
 
-
 interface Transaction {
   id: number;
   saleDate: string;
@@ -25,9 +24,12 @@ export default function Store() {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // Cria as tabelas antes de carregar qualquer dado
+        await dbStoreService.createTable();
+        await dbItemService.createTable();
+
         await loadItems();
         await loadTransactions();
-        dbStoreService.createTable();
       } catch (error) {
         console.log(error);
       }
@@ -36,7 +38,6 @@ export default function Store() {
     fetchData();
   }, []);
 
-
   const loadItems = async () => {
     const items = await dbItemService.readItem() as Item[];
     setStoreItems(items);
@@ -44,8 +45,8 @@ export default function Store() {
 
   const loadTransactions = async () => {
     try {
-
       const sales = await dbStoreService.getSales();
+      console.log('Sales retornadas:', sales); // Verifique quantos registros estão sendo retornados
       const transactionsWithDetails = await Promise.all(
         sales.map(async (sale) => {
           const details = await dbStoreService.getSaleDetails(sale.id);
@@ -58,12 +59,12 @@ export default function Store() {
       setTransactions(transactionsWithDetails);
     } catch (error) {
       Alert.alert('Erro', 'Falha ao carregar histórico');
+      console.log(error)
     }
   };
 
   const handleAddToCart = (item: Item) => {
     const isItemInCart = cart.some(cartItem => cartItem.id === item.id);
-
     if (isItemInCart) {
       Alert.alert('Aviso', 'Este item já está no carrinho!');
       return;
@@ -79,9 +80,6 @@ export default function Store() {
 
   const handleCheckout = async (type: 'buy' | 'sell') => {
     try {
-
-
-
       if (type === 'buy') {
         await dbStoreService.createPurchase(cart);
       } else {
@@ -165,6 +163,7 @@ export default function Store() {
         contentContainerStyle={{ paddingBottom: 20 }}
       />
 
+      {/* Modal do Carrinho */}
       <Modal visible={showCartModal} animationType="slide">
         <View style={styles.modalContainer}>
           <Text style={styles.modalTitle}>
@@ -207,26 +206,31 @@ export default function Store() {
         </View>
       </Modal>
 
+      {/* Modal do Histórico */}
       <Modal visible={showHistoryModal} animationType="slide">
-        <View style={styles.modalContainer}>
-          <Text style={styles.modalTitle}>Histórico de Transações</Text>
+        <View style={styles.historyContainer}>
+          <Text style={styles.historyTitle}>Histórico de Transações</Text>
 
           <FlatList
             data={transactions}
-            keyExtractor={(item) => item.id.toString()}
+            // Usa chave composta para evitar duplicidade
+            keyExtractor={(item, index) => `${item.id}_${index}`}
             renderItem={({ item }) => (
               <View style={styles.transactionItem}>
-                <Text style={styles.transactionText}>
-                  {new Date(item.saleDate).toLocaleDateString()}
-                </Text>
-                <Text style={styles.transactionText}>
-                  {item.type === 'buy' ? 'Compra' : 'Venda'} - {item.total} moedas
-                </Text>
-                <Text style={styles.transactionText}>
+                <View style={styles.transactionHeader}>
+                  <Text style={styles.transactionDate}>
+                    {new Date(item.saleDate).toLocaleDateString()}
+                  </Text>
+                  <Text style={styles.transactionTotal}>
+                    {item.type === 'buy' ? 'Compra' : 'Venda'} - {item.total} moedas
+                  </Text>
+                </View>
+                <Text style={styles.transactionItems}>
                   Itens: {item.items.map(i => i.name).join(', ')}
                 </Text>
               </View>
             )}
+            contentContainerStyle={{ paddingBottom: 20 }}
           />
 
           <TouchableOpacity
@@ -240,7 +244,7 @@ export default function Store() {
   );
 }
 
-// Estilos (adicione ao seu GlobalStyles ou crie um StoreStyles)
+// Estilos
 const styles = StyleSheet.create({
   tabContainer: {
     flexDirection: 'row',
@@ -339,17 +343,48 @@ const styles = StyleSheet.create({
     width: '40%',
     alignItems: 'center',
   },
+  // Estilização do Histórico
+  historyContainer: {
+    flex: 1,
+    backgroundColor: '#0A0F24',
+    padding: 20,
+  },
+  historyTitle: {
+    color: '#E0E5FF',
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
   transactionItem: {
     backgroundColor: '#161B33',
     padding: 15,
-    marginVertical: 5,
-    borderRadius: 8,
+    marginVertical: 8,
+    borderRadius: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 5,
+  },
+  transactionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginBottom: 8,
   },
-  transactionText: {
+  transactionDate: {
     color: '#E0E5FF',
     fontSize: 16,
+    fontWeight: '600',
+  },
+  transactionTotal: {
+    color: '#7C83FD',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  transactionItems: {
+    color: '#A3A3A3',
+    fontSize: 14,
   },
   closeButton: {
     backgroundColor: '#7C83FD',
@@ -360,7 +395,7 @@ const styles = StyleSheet.create({
   },
 });
 
-// Adicione esta função auxiliar no mesmo arquivo ou em GlobalStyles
+// Função auxiliar para estilos de categoria
 function getCategoryStyle(category: ItemCategory) {
   switch (category) {
     case ItemCategory.Weapon:
