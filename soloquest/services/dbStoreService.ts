@@ -44,7 +44,7 @@ export async function createTable() {
     `);
   } finally {
     try {
-      await cx.closeAsync();
+      //await cx.closeAsync();
     } catch (error) {
       console.warn("Erro ao fechar conexão (createTable):", error);
     }
@@ -101,7 +101,7 @@ export async function createSale(items: SaleItem[]) {
     throw error;
   } finally {
     try {
-      await dbCx.closeAsync();
+      //await dbCx.closeAsync();
     } catch (error) {
       console.warn("Erro ao fechar conexão (createSale):", error);
     }
@@ -142,7 +142,7 @@ export async function createPurchase(items: any[]) {
     throw error;
   } finally {
     try {
-      await dbCx.closeAsync();
+      //await dbCx.closeAsync();
     } catch (error) {
       console.warn("Erro ao fechar conexão (createPurchase):", error);
     }
@@ -161,7 +161,7 @@ export async function getSales() {
     return sales;
   } finally {
     try {
-      await dbCx.closeAsync();
+      //await dbCx.closeAsync();
     } catch (error) {
       console.warn("Erro ao fechar conexão (getSales):", error);
     }
@@ -184,7 +184,7 @@ export async function getSaleDetails(saleId: number) {
     return { items };
   } finally {
     try {
-      await dbCx.closeAsync();
+      //await dbCx.closeAsync();
     } catch (error) {
       console.warn("Erro ao fechar conexão (getSaleDetails):", error);
     }

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Modal, StyleSheet, FlatList, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, StyleSheet, FlatList, Alert, Dimensions } from 'react-native';
 import { GlobalStyle } from '../styles/GlobalStyles';
 import * as dbItemService from '../services/dbItemService';
 import * as dbStoreService from '../services/dbStoreService';
 import { CustomList } from '../components/CustomList';
 import { Item } from './inventory';
+import { PieChart } from 'react-native-chart-kit';
 
 interface Transaction {
   id: number;
@@ -20,6 +21,7 @@ export default function Store() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [showCartModal, setShowCartModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [showChartModal, setShowChartModal] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -61,6 +63,42 @@ export default function Store() {
       Alert.alert('Erro', 'Falha ao carregar histórico');
       console.log(error);
     }
+  };
+
+  // Cálculo dos totais para cada tipo de transação
+  const totalBuy = transactions
+    .filter((t) => t.type === 'buy')
+    .reduce((acc, t) => acc + t.total, 0);
+  const totalSell = transactions
+    .filter((t) => t.type === 'sell')
+    .reduce((acc, t) => acc + t.total, 0);
+
+  const pieData = [
+    {
+      name: 'Compra',
+      total: totalBuy,
+      color: '#7C83FD',
+      legendFontColor: '#7C83FD',
+      legendFontSize: 12,
+    },
+    {
+      name: 'Venda',
+      total: totalSell,
+      color: '#FF4655',
+      legendFontColor: '#FF4655',
+      legendFontSize: 12,
+    },
+  ];
+
+  const chartConfig = {
+    backgroundGradientFrom: "#1E2923",
+    backgroundGradientFromOpacity: 0,
+    backgroundGradientTo: "#08130D",
+    backgroundGradientToOpacity: 0.5,
+    color: (opacity = 1) => `rgba(26, 255, 146, ${opacity})`,
+    strokeWidth: 2,
+    barPercentage: 0.5,
+    useShadowColorFromDataset: false,
   };
 
   const handleAddToCart = (item: Item) => {
@@ -133,6 +171,13 @@ export default function Store() {
     <View style={GlobalStyle.container}>
       <Text style={GlobalStyle.titulo}>Loja do Caçador</Text>
 
+      {/* Botão para abrir o modal do Gráfico */}
+      <TouchableOpacity
+        style={[styles.tabButton, { backgroundColor: '#7C83FD', marginBottom: 12 }]}
+        onPress={() => setShowChartModal(true)}>
+        <Text style={styles.tabText}>📊 Gráfico de Vendas</Text>
+      </TouchableOpacity>
+
       <View style={styles.tabContainer}>
         <TouchableOpacity
           style={[styles.tabButton, { backgroundColor: '#4CAF5050' }]}
@@ -162,6 +207,28 @@ export default function Store() {
         renderItem={renderStoreItem}
         contentContainerStyle={{ paddingBottom: 20 }}
       />
+
+      {/* Modal do Gráfico */}
+      <Modal visible={showChartModal} animationType="slide">
+        <View style={styles.modalContainer}>
+          <Text style={styles.modalTitle}>Gráfico de Vendas</Text>
+          <PieChart
+            data={pieData}
+            width={Dimensions.get('window').width - 32}
+            height={220}
+            chartConfig={chartConfig}
+            accessor="total"
+            backgroundColor="transparent"
+            paddingLeft="15"
+            absolute
+          />
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={() => setShowChartModal(false)}>
+            <Text style={styles.buttonText}>Fechar</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
 
       {/* Modal do Carrinho */}
       <Modal visible={showCartModal} animationType="slide">
@@ -213,7 +280,6 @@ export default function Store() {
 
           <FlatList
             data={transactions}
-            // Usa chave composta para evitar duplicidade
             keyExtractor={(item, index) => `${item.id}_${index}`}
             renderItem={({ item }) => (
               <View style={styles.transactionItem}>
@@ -244,7 +310,6 @@ export default function Store() {
   );
 }
 
-// Estilos
 const styles = StyleSheet.create({
   tabContainer: {
     flexDirection: 'row',
@@ -291,6 +356,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#0A0F24',
     padding: 20,
+    justifyContent: 'center'
   },
   modalTitle: {
     color: '#E0E5FF',

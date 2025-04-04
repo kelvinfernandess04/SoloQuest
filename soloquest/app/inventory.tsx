@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, TextInput, Modal, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, TextInput, Modal, StyleSheet, ScrollView, Alert } from 'react-native';
 import { GlobalStyle } from '../styles/GlobalStyles';
 import * as dbItemService from '../services/dbItemService';
 import * as dbItemCategoryService from '../services/dbItemCategoryService';
@@ -13,7 +13,7 @@ export interface Item {
   owned: boolean;
 }
 
-interface ItemCategory {
+export interface ItemCategory {
   id: string;
   name: string;
 }
@@ -204,22 +204,53 @@ export default function Inventory() {
                   setShowCategorySelectorModal(false);
                 }}
               >
-                <Text style={styles.categoryOptionText}>Nenhuma / Padrão</Text>
+                <Text style={styles.categoryOptionText}> Selecione uma opção </Text>
               </TouchableOpacity>
               {categories.map((category) => (
-                <TouchableOpacity
-                  key={category.id}
-                  style={[
-                    styles.categoryOption,
-                    newItem.category === category.name && styles.categoryOptionSelected
-                  ]}
-                  onPress={() => {
-                    setNewItem({ ...newItem, category: category.name });
-                    setShowCategorySelectorModal(false);
-                  }}
-                >
-                  <Text style={styles.categoryOptionText}>{category.name}</Text>
-                </TouchableOpacity>
+                <View key={category.id} style={styles.categoryRow}>
+                  <TouchableOpacity
+                    style={[
+                      styles.categoryOption,
+                      newItem.category === category.name && styles.categoryOptionSelected,
+                      { flex: 1 }
+                    ]}
+                    onPress={() => {
+                      setNewItem({ ...newItem, category: category.name });
+                      setShowCategorySelectorModal(false);
+                    }}
+                  >
+                    <Text style={styles.categoryOptionText}>{category.name}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => {
+                      Alert.alert(
+                        "Confirmação",
+                        `Deseja excluir a categoria "${category.name}"?`,
+                        [
+                          { text: "Cancelar", style: "cancel" },
+                          {
+                            text: "Excluir",
+                            onPress: async () => {
+                              const success = await dbItemCategoryService.deleteCategory(category.id);
+                              if (success) {
+                                setCategories(categories.filter(cat => cat.id !== category.id));
+                                // Se a categoria do novo item for a que foi excluída, atualiza para a primeira disponível ou vazio
+                                if (newItem.category === category.name) {
+                                  setNewItem({ ...newItem, category: categories[0]?.name || '' });
+                                }
+                              } else {
+                                Alert.alert("Erro", "Falha ao excluir categoria.");
+                              }
+                            }
+                          }
+                        ]
+                      );
+                    }}
+                    style={styles.deleteCategoryButton}
+                  >
+                    <Text style={styles.deleteCategoryButtonText}>Excluir</Text>
+                  </TouchableOpacity>
+                </View>
               ))}
             </ScrollView>
             <TouchableOpacity
@@ -275,7 +306,11 @@ export default function Inventory() {
       </Modal>
 
       {/* Filtro de Categorias para itens */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterContainer}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.filterContainer}
+      >
         <TouchableOpacity
           style={[
             styles.filterButton,
@@ -399,8 +434,14 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     textAlign: 'center'
   },
+  categoryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   categoryOption: {
-    padding: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     borderRadius: 8,
     marginBottom: 8,
     backgroundColor: '#0A0F24'
@@ -413,6 +454,18 @@ const styles = StyleSheet.create({
   categoryOptionText: {
     color: '#E0E5FF',
     textAlign: 'center'
+  },
+  deleteCategoryButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    marginLeft: 4,
+    backgroundColor: '#FF465520',
+    borderRadius: 8,
+    justifyContent: 'center'
+  },
+  deleteCategoryButtonText: {
+    color: '#FF4655',
+    fontSize: 12
   },
   modalCloseButton: {
     marginTop: 12,
@@ -438,20 +491,28 @@ const styles = StyleSheet.create({
     fontWeight: 'bold'
   },
   filterContainer: {
-    marginBottom: 12
+    marginVertical: 10,
+    minWidth: 50,
+    minHeight:50,
+    paddingHorizontal: 15,
   },
   filterButton: {
-    padding: 8,
-    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
     backgroundColor: '#0A0F24',
     borderWidth: 1,
     borderColor: '#2A2F4D',
-    marginRight: 8
+    marginRight: 8,
+    alignItems: 'center',
+    justifyContent: 'center'
   },
   filterButtonSelected: {
     backgroundColor: '#7C83FD'
   },
   filterButtonText: {
-    color: '#E0E5FF'
+    color: '#E0E5FF',
+    fontSize: 14,
+    textAlign: 'center'
   }
 });
