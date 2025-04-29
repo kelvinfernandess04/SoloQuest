@@ -1,0 +1,59 @@
+# Conecta o variable group SoloQuest contendo EXPO_TOKEN
+variables:
+- group: SoloQuest                                # variável EXPO_TOKEN está neste grupo 
+
+trigger:
+  branches:
+    include:
+      - develop                                   # CI em pushes para develop 
+      - qa                                        # CI em pushes para qa 
+      - master                                    # CI em pushes para master
+
+pool:
+  vmImage: 'ubuntu-latest'                        # agente Microsoft-hosted 
+
+stages:
+- stage: Build
+  displayName: Build APK
+  jobs:
+  - job: BuildJob
+    displayName: 'Build APK Android'
+    steps:
+    - task: NodeTool@0                            # instala Node.js via NodeTool@0 
+      inputs:
+        versionSource: 'spec'
+        versionSpec: '22.x'
+        checkLatest: true
+
+    - script: npm ci                              # instala dependências de forma determinística 
+      displayName: 'Install dependencies'
+
+    - script: npx eas-cli build --platform android --non-interactive --wait
+      env:
+        EXPO_TOKEN: $(EXPO_TOKEN)                 # usa EXPO_TOKEN do variable group (sem expo login) 
+      displayName: 'Run EAS Android build'
+
+    - task: PublishPipelineArtifact@1              # publica o build como pipeline artifact 
+      inputs:
+        targetPath: '$(Pipeline.Workspace)/build'
+        artifact: 'apk'
+        publishLocation: 'pipeline'
+
+- stage: Deploy
+  displayName: Deploy APK
+  dependsOn: Build
+  jobs:
+  - deployment: DeployJob
+    displayName: 'Deploy to KELVINNOTE'
+    environment: KELVINNOTE                       # Environment criado em Pipelines → Environments 
+    pool:
+      name: Default                               # seu agente self-hosted :contentReference[oaicite:8]{index=8}
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current                    # baixa o artifact “apk” 
+          - script: |
+              cp $(Pipeline.Workspace)/apk/*.apk C:/Users/kelvi/DevTools/Repositórios/SoloQuest/apks/SoloQuest.apk
+              echo "APK copiado para pasta de testes"
+            displayName: 'Copy APK to local folder'
