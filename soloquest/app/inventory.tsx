@@ -1,83 +1,69 @@
+// app/inventory.tsx
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, TextInput, Modal, StyleSheet, ScrollView, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  TextInput,
+  Modal,
+  ScrollView,
+  Alert
+} from 'react-native';
 import { GlobalStyle } from '../styles/GlobalStyles';
+import {
+  InventoryStyles,
+  CATEGORY_OPTIONS,
+  getCategoryStyle
+} from '../styles/InventoryStyles';
 import * as dbItemService from '../services/dbItemService';
-import * as dbItemCategoryService from '../services/dbItemCategoryService';
-
-// Removemos o enum fixo e passamos a usar as categorias do banco
-export interface Item {
-  id: string;
-  name: string;
-  category: string;
-  price: number;
-  owned: boolean;
-}
-
-export interface ItemCategory {
-  id: string;
-  name: string;
-}
+import { Item } from '../services/dbItemService';
 
 export default function Inventory() {
   const [items, setItems] = useState<Item[]>([]);
-  const [categories, setCategories] = useState<ItemCategory[]>([]);
   const [selectedFilter, setSelectedFilter] = useState<string>('Todos');
   const [newItem, setNewItem] = useState<Omit<Item, 'id'>>({
     name: '',
-    category: '',
+    category: CATEGORY_OPTIONS[0],
     price: 0,
-    owned: true
+    owned: true,
+    quality: 'Comum'
   });
-  const [showCategorySelectorModal, setShowCategorySelectorModal] = useState(false);
-  const [showNewCategoryModal, setShowNewCategoryModal] = useState(false);
-  const [newCategoryName, setNewCategoryName] = useState('');
+  const [showCategorySelector, setShowCategorySelector] = useState(false);
 
   const loadItems = async () => {
     try {
       await dbItemService.createTable();
       const dbItems = await dbItemService.readItem();
-      setItems(dbItems as Item[]);
+      setItems(dbItems);
     } catch (error) {
       console.error('Erro ao carregar itens:', error);
     }
   };
 
-  const loadCategories = async () => {
-    try {
-      await dbItemCategoryService.createTable();
-      const dbCategories = await dbItemCategoryService.readCategories();
-      setCategories(dbCategories);
-      // Se ainda não foi selecionada nenhuma categoria para o novo item e houver alguma cadastrada, define a primeira como padrão
-      if (!newItem.category && dbCategories.length > 0) {
-        setNewItem({ ...newItem, category: dbCategories[0].name });
-      }
-    } catch (error) {
-      console.error('Erro ao carregar categorias:', error);
-    }
-  };
-
-  const loadAll = async () => {
-    await loadItems();
-    await loadCategories();
-  };
-
   useEffect(() => {
-    loadAll();
+    loadItems();
   }, []);
 
   const handleAddItem = async () => {
-    if (!newItem.name.trim() || !newItem.category.trim()) return;
+    if (!newItem.name.trim()) return;
+
+    const itemToAdd: Item = {
+      ...newItem,
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2,5)
+    };
 
     try {
-      const itemToAdd = {
-        ...newItem,
-        id: Math.random().toString(36).substring(7)
-      };
-
       const success = await dbItemService.createItem(itemToAdd);
       if (success) {
-        setItems([...items, itemToAdd]);
-        setNewItem({ name: '', category: categories[0]?.name || '', price: 0, owned: true });
+        setItems(prev => [...prev, itemToAdd]);
+        setNewItem({
+          name: '',
+          category: CATEGORY_OPTIONS[0],
+          price: 0,
+          owned: true,
+          quality: 'Comum'
+        });
       }
     } catch (error) {
       console.error('Erro ao adicionar item:', error);
@@ -88,67 +74,25 @@ export default function Inventory() {
     try {
       const success = await dbItemService.deleteItem(id);
       if (success) {
-        setItems(items.filter(item => item.id !== id));
+        setItems(prev => prev.filter(i => i.id !== id));
       }
     } catch (error) {
       console.error('Erro ao remover item:', error);
     }
   };
 
-  const handleAddCategory = async () => {
-    if (!newCategoryName.trim()) return;
-    try {
-      const newCategory = {
-        id: Math.random().toString(36).substring(7),
-        name: newCategoryName.trim()
-      };
-      const success = await dbItemCategoryService.createCategory(newCategory);
-      if (success) {
-        setCategories([...categories, newCategory]);
-        // Se não houver categoria selecionada para o novo item, define a nova como padrão
-        if (!newItem.category) {
-          setNewItem({ ...newItem, category: newCategory.name });
-        }
-        setNewCategoryName('');
-        setShowNewCategoryModal(false);
-      }
-    } catch (error) {
-      console.error('Erro ao adicionar categoria:', error);
-    }
-  };
-
-  // Função de filtro dos itens por categoria
-  const filteredItems = items.filter(item => {
-    if (selectedFilter === 'Todos') return true;
-    return item.category === selectedFilter;
-  });
-
-  // Função para renderizar o estilo de cada categoria (simples exemplo)
-  const getCategoryStyle = (category: string) => {
-    // Tenta encontrar a categoria cadastrada para buscar alguma cor definida
-    const cat = categories.find(c => c.name === category);
-    // Se não encontrar, retorna um estilo padrão
-    if (!cat) return { backgroundColor: '#607D8B20', borderColor: '#607D8B' };
-
-    // Exemplo: se o nome contiver "Arma" ou "Armadura" ou "Acessório", pode retornar cores diferentes
-    if (cat.name.toLowerCase().includes("arma")) {
-      return { backgroundColor: '#FF465520', borderColor: '#FF4655' };
-    } else if (cat.name.toLowerCase().includes("armadura")) {
-      return { backgroundColor: '#4CAF5020', borderColor: '#4CAF50' };
-    } else if (cat.name.toLowerCase().includes("acessório")) {
-      return { backgroundColor: '#9C27B020', borderColor: '#9C27B0' };
-    }
-    return { backgroundColor: '#607D8B20', borderColor: '#607D8B' };
-  };
+  const filteredItems = items.filter(i =>
+    selectedFilter === 'Todos' ? true : i.category === selectedFilter
+  );
 
   return (
     <View style={GlobalStyle.container}>
       <Text style={GlobalStyle.titulo}>Tesouro do Caçador</Text>
 
-      {/* Formulário de adição de item */}
-      <View style={styles.formContainer}>
+      {/* Formulário de adição */}
+      <View style={InventoryStyles.formContainer}>
         <TextInput
-          style={styles.input}
+          style={InventoryStyles.input}
           placeholder="Nome do item"
           placeholderTextColor="#7C83FD80"
           value={newItem.name}
@@ -156,7 +100,7 @@ export default function Inventory() {
         />
 
         <TextInput
-          style={styles.input}
+          style={InventoryStyles.input}
           placeholder="Preço"
           placeholderTextColor="#7C83FD80"
           keyboardType="numeric"
@@ -164,355 +108,140 @@ export default function Inventory() {
           onChangeText={text => setNewItem({ ...newItem, price: Number(text) || 0 })}
         />
 
-        {/* Seletor de Categoria para o item */}
         <TouchableOpacity
-          style={styles.categorySelector}
-          onPress={() => setShowCategorySelectorModal(true)}
+          style={InventoryStyles.categorySelector}
+          onPress={() => setShowCategorySelector(true)}
         >
-          <Text style={styles.categorySelectorText}>
-            Categoria: {newItem.category || 'Selecione'}
+          <Text style={InventoryStyles.categorySelectorText}>
+            Categoria: {newItem.category}
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.addButton, !newItem.name.trim() && styles.disabledButton]}
+          style={[
+            InventoryStyles.addButton,
+            !newItem.name.trim() && InventoryStyles.disabledButton
+          ]}
           onPress={handleAddItem}
           disabled={!newItem.name.trim()}
         >
-          <Text style={styles.addButtonText}>Adicionar Item</Text>
+          <Text style={InventoryStyles.addButtonText}>Adicionar Item</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Modal de Seleção de Categoria para o item */}
+      {/* Modal de seleção de categoria */}
       <Modal
-        visible={showCategorySelectorModal}
-        transparent={true}
+        visible={showCategorySelector}
+        transparent
         animationType="slide"
-        onRequestClose={() => setShowCategorySelectorModal(false)}
+        onRequestClose={() => setShowCategorySelector(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Selecione a Categoria</Text>
+        <View style={InventoryStyles.modalOverlay}>
+          <View style={InventoryStyles.modalContent}>
+            <Text style={InventoryStyles.modalTitle}>Selecione a Categoria</Text>
             <ScrollView>
-              <TouchableOpacity
-                style={[
-                  styles.categoryOption,
-                  selectedFilter === 'Todos' && styles.categoryOptionSelected
-                ]}
-                onPress={() => {
-                  setNewItem({ ...newItem, category: '' });
-                  setShowCategorySelectorModal(false);
-                }}
-              >
-                <Text style={styles.categoryOptionText}> Selecione uma opção </Text>
-              </TouchableOpacity>
-              {categories.map((category) => (
-                <View key={category.id} style={styles.categoryRow}>
-                  <TouchableOpacity
-                    style={[
-                      styles.categoryOption,
-                      newItem.category === category.name && styles.categoryOptionSelected,
-                      { flex: 1 }
-                    ]}
-                    onPress={() => {
-                      setNewItem({ ...newItem, category: category.name });
-                      setShowCategorySelectorModal(false);
-                    }}
-                  >
-                    <Text style={styles.categoryOptionText}>{category.name}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => {
-                      Alert.alert(
-                        "Confirmação",
-                        `Deseja excluir a categoria "${category.name}"?`,
-                        [
-                          { text: "Cancelar", style: "cancel" },
-                          {
-                            text: "Excluir",
-                            onPress: async () => {
-                              const success = await dbItemCategoryService.deleteCategory(category.id);
-                              if (success) {
-                                setCategories(categories.filter(cat => cat.id !== category.id));
-                                // Se a categoria do novo item for a que foi excluída, atualiza para a primeira disponível ou vazio
-                                if (newItem.category === category.name) {
-                                  setNewItem({ ...newItem, category: categories[0]?.name || '' });
-                                }
-                              } else {
-                                Alert.alert("Erro", "Falha ao excluir categoria.");
-                              }
-                            }
-                          }
-                        ]
-                      );
-                    }}
-                    style={styles.deleteCategoryButton}
-                  >
-                    <Text style={styles.deleteCategoryButtonText}>Excluir</Text>
-                  </TouchableOpacity>
-                </View>
+              {CATEGORY_OPTIONS.map(cat => (
+                <TouchableOpacity
+                  key={cat}
+                  style={[
+                    InventoryStyles.categoryOption,
+                    newItem.category === cat && InventoryStyles.categoryOptionSelected
+                  ]}
+                  onPress={() => {
+                    setNewItem({ ...newItem, category: cat });
+                    setShowCategorySelector(false);
+                  }}
+                >
+                  <Text style={InventoryStyles.categoryOptionText}>{cat}</Text>
+                </TouchableOpacity>
               ))}
             </ScrollView>
             <TouchableOpacity
-              style={styles.addCategoryButton}
-              onPress={() => {
-                setShowCategorySelectorModal(false);
-                setShowNewCategoryModal(true);
-              }}
+              style={InventoryStyles.modalCloseButton}
+              onPress={() => setShowCategorySelector(false)}
             >
-              <Text style={styles.addCategoryButtonText}>+ Adicionar Nova Categoria</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.modalCloseButton}
-              onPress={() => setShowCategorySelectorModal(false)}
-            >
-              <Text style={styles.modalCloseButtonText}>Cancelar</Text>
+              <Text style={InventoryStyles.modalCloseButtonText}>Cancelar</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
 
-      {/* Modal para cadastro de nova categoria */}
-      <Modal
-        visible={showNewCategoryModal}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowNewCategoryModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Nova Categoria</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Nome da categoria"
-              placeholderTextColor="#7C83FD80"
-              value={newCategoryName}
-              onChangeText={setNewCategoryName}
-            />
-            <TouchableOpacity
-              style={styles.addButton}
-              onPress={handleAddCategory}
-            >
-              <Text style={styles.addButtonText}>Adicionar Categoria</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.modalCloseButton}
-              onPress={() => setShowNewCategoryModal(false)}
-            >
-              <Text style={styles.modalCloseButtonText}>Cancelar</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Filtro de Categorias para itens */}
+      {/* Filtro de categorias */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        style={styles.filterContainer}
+        style={InventoryStyles.filterContainer}
       >
         <TouchableOpacity
           style={[
-            styles.filterButton,
-            selectedFilter === 'Todos' && styles.filterButtonSelected
+            InventoryStyles.filterButton,
+            selectedFilter === 'Todos' && InventoryStyles.filterButtonSelected
           ]}
           onPress={() => setSelectedFilter('Todos')}
         >
-          <Text style={styles.filterButtonText}>Todos</Text>
+          <Text style={InventoryStyles.filterButtonText}>Todos</Text>
         </TouchableOpacity>
-        {categories.map(category => (
+        {CATEGORY_OPTIONS.map(cat => (
           <TouchableOpacity
-            key={category.id}
+            key={cat}
             style={[
-              styles.filterButton,
-              selectedFilter === category.name && styles.filterButtonSelected
+              InventoryStyles.filterButton,
+              selectedFilter === cat && InventoryStyles.filterButtonSelected
             ]}
-            onPress={() => setSelectedFilter(category.name)}
+            onPress={() => setSelectedFilter(cat)}
           >
-            <Text style={styles.filterButtonText}>{category.name}</Text>
+            <Text style={InventoryStyles.filterButtonText}>{cat}</Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
 
-      {/* Lista de Itens */}
+      {/* Lista de itens */}
       <FlatList
         data={filteredItems.filter(item => item.owned)}
-        keyExtractor={(item) => item.id}
+        keyExtractor={item => item.id}
         renderItem={({ item }) => (
           <View style={GlobalStyle.rewardCard}>
+            {/* Badge de qualidade */}
+            <View style={InventoryStyles.qualityTag}>
+              <Text style={InventoryStyles.qualityTagText}>{item.quality}</Text>
+            </View>
+
+            {/* Badge de categoria */}
             <View style={[GlobalStyle.categoryTag, getCategoryStyle(item.category)]}>
-              <Text style={{ color: getCategoryStyle(item.category).borderColor, fontSize: 12 }}>
-                {item.category || 'Padrão'}
+              <Text
+                style={{
+                  color: getCategoryStyle(item.category).borderColor,
+                  fontSize: 12
+                }}
+              >
+                {item.category}
               </Text>
             </View>
-            <Text style={{ color: '#E0E5FF', fontSize: 18, fontWeight: 'bold', marginBottom: 8 }}>
+
+            <Text
+              style={{
+                color: '#E0E5FF',
+                fontSize: 18,
+                fontWeight: 'bold',
+                marginBottom: 8
+              }}
+            >
               {item.name}
             </Text>
+
             <Text style={{ color: '#7C83FD', marginBottom: 8 }}>
               Preço: <Text style={{ color: '#E0E5FF' }}>{item.price} moedas</Text>
             </Text>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <TouchableOpacity
-                style={{
-                  backgroundColor: '#FF465520',
-                  padding: 8,
-                  borderRadius: 6,
-                  borderWidth: 1,
-                  borderColor: '#FF4655'
-                }}
-                onPress={() => handleDeleteItem(item.id)}
-              >
-                <Text style={{ color: '#FF4655', textAlign: 'center' }}>Remover</Text>
-              </TouchableOpacity>
-            </View>
+
+            <TouchableOpacity
+              style={InventoryStyles.deleteButton}
+              onPress={() => handleDeleteItem(item.id)}
+            >
+              <Text style={InventoryStyles.deleteButtonText}>Remover</Text>
+            </TouchableOpacity>
           </View>
         )}
       />
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  formContainer: {
-    backgroundColor: '#161B33',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#7C83FD30'
-  },
-  input: {
-    color: '#E0E5FF',
-    backgroundColor: '#0A0F24',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#2A2F4D'
-  },
-  categorySelector: {
-    backgroundColor: '#0A0F24',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#2A2F4D'
-  },
-  categorySelectorText: {
-    color: '#E0E5FF'
-  },
-  addButton: {
-    backgroundColor: '#7C83FD',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center'
-  },
-  disabledButton: {
-    opacity: 0.6
-  },
-  addButtonText: {
-    color: '#E0E5FF',
-    fontWeight: 'bold'
-  },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    backgroundColor: 'rgba(10, 15, 36, 0.8)',
-    padding: 20
-  },
-  modalContent: {
-    backgroundColor: '#161B33',
-    borderRadius: 12,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#7C83FD30'
-  },
-  modalTitle: {
-    color: '#E0E5FF',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    textAlign: 'center'
-  },
-  categoryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  categoryOption: {
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    marginBottom: 8,
-    backgroundColor: '#0A0F24'
-  },
-  categoryOptionSelected: {
-    backgroundColor: '#7C83FD30',
-    borderWidth: 1,
-    borderColor: '#7C83FD'
-  },
-  categoryOptionText: {
-    color: '#E0E5FF',
-    textAlign: 'center'
-  },
-  deleteCategoryButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 8,
-    marginLeft: 4,
-    backgroundColor: '#FF465520',
-    borderRadius: 8,
-    justifyContent: 'center'
-  },
-  deleteCategoryButtonText: {
-    color: '#FF4655',
-    fontSize: 12
-  },
-  modalCloseButton: {
-    marginTop: 12,
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: '#FF465520',
-    borderWidth: 1,
-    borderColor: '#FF4655'
-  },
-  modalCloseButtonText: {
-    color: '#FF4655',
-    textAlign: 'center'
-  },
-  addCategoryButton: {
-    backgroundColor: '#7C83FD',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 8
-  },
-  addCategoryButtonText: {
-    color: '#E0E5FF',
-    fontWeight: 'bold'
-  },
-  filterContainer: {
-    marginVertical: 10,
-    minWidth: 50,
-    minHeight:50,
-    paddingHorizontal: 15,
-  },
-  filterButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    backgroundColor: '#0A0F24',
-    borderWidth: 1,
-    borderColor: '#2A2F4D',
-    marginRight: 8,
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  filterButtonSelected: {
-    backgroundColor: '#7C83FD'
-  },
-  filterButtonText: {
-    color: '#E0E5FF',
-    fontSize: 14,
-    textAlign: 'center'
-  }
-});

@@ -3,24 +3,35 @@ import { View, Text } from 'react-native';
 import { GlobalStyle } from '../styles/GlobalStyles';
 import { AttributesStyles } from '../styles/AttributesStyles';
 import { CustomList } from '../components/CustomList';
-
-const attributes = [
-  { name: 'STR', value: 75, label: 'Força' },
-  { name: 'AGI', value: 60, label: 'Agilidade' },
-  { name: 'VIT', value: 85, label: 'Vitalidade' },
-  { name: 'INT', value: 90, label: 'Inteligência' },
-  { name: 'PER', value: 70, label: 'Percepção' },
-  { name: 'DEX', value: 80, label: 'Destreza' },
-];
+import { usePlayer } from '../contexts/PlayerContext';
 
 export default function Attributes() {
-  return (
+  const { attributes, level, xp, xpToNextLevel, coins } = usePlayer();
 
+  const attributesList = Object.entries(attributes).map(([key, value]) => {
+    const labelMap: Record<string, string> = {
+      STR: 'Força',
+      AGI: 'Agilidade',
+      VIT: 'Vitalidade',
+      INT: 'Inteligência',
+      PER: 'Percepção',
+      DEX: 'Destreza',
+    };
+
+    return {
+      name: key,
+      value,
+      label: labelMap[key] || key,
+    };
+  });
+
+  return (
     <View style={GlobalStyle.container}>
-      <Text style={[GlobalStyle.titulo, { marginBottom: 30 }]}>Status do Caçador</Text>
+      <Text style={[GlobalStyle.titulo, { marginBottom: 10 }]}>Status do Caçador</Text>
+      <Text style={{ color: '#FFF', marginBottom: 20 }}>Nível: {level} | XP: {xp}/{xpToNextLevel} | 🪙 {coins}</Text>
 
       <CustomList
-        data={attributes}
+        data={attributesList}
         keyExtractor={(item) => item.name}
         contentContainerStyle={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}
         renderItem={({ item }) => (
@@ -37,9 +48,8 @@ export default function Attributes() {
               marginTop: 8,
               fontFamily: 'Orbitron-SemiBold'
             }}>
-              {item.value}%
+              Nível {item.value}
             </Text>
-
           </View>
         )}
       />

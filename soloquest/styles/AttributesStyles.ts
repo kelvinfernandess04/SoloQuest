@@ -24,5 +24,22 @@ export const AttributesStyles = StyleSheet.create({
   progressFill: {
     height: '100%',
     backgroundColor: '#7C83FD',
+  },
+  addPointButton: {
+    position: 'absolute',
+    right: 12,
+    bottom: 12,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#FFD700',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  addPointButtonText: {
+    color: '#0A0F24',
+    fontWeight: 'bold',
+    fontSize: 16,
+    lineHeight: 16
   }
 });

@@ -1,85 +1,92 @@
+// services/dbItemService.ts
 import * as SQLite from 'expo-sqlite';
 
-export async function getDbConnection() {
-  const cx = await SQLite.openDatabaseAsync('dbSoloQuest.db');
-  return cx;
-}
+export type Quality = 'Comum' | 'Raro' | 'Épico' | 'Lendário';
 
-export async function createTable() {
-  const cx = await getDbConnection();
-  try {
-    const query = `
-      CREATE TABLE IF NOT EXISTS tbitems (
-        id TEXT NOT NULL PRIMARY KEY,
-        name TEXT NOT NULL,
-        category TEXT NOT NULL,
-        price INTEGER NOT NULL,
-        owned BOOLEAN
-      );
-    `;
-    await cx.execAsync(query);
-  } finally {
-    await cx.closeAsync();
-  }
-}
-
-export async function createItem(item: { 
+export interface Item {
   id: string;
   name: string;
   category: string;
   price: number;
   owned: boolean;
-}) {    
-  const dbCx = await getDbConnection();    
-  const query = 'INSERT INTO tbitems (id, name, category, price, owned) VALUES (?,?,?,?,?)';
-  const result = await dbCx.runAsync(query, [item.id, item.name, item.category, item.price, item.owned]);
-  await dbCx.closeAsync();    
-  return result.changes === 1;    
+  quality: Quality;
 }
 
-export async function readItem() {
-  interface ItemRow {
+export async function getDbConnection() {
+  return await SQLite.openDatabaseAsync('dbSoloQuest.db');
+}
+
+export async function createTable() {
+  const db = await getDbConnection();
+  const query = `
+    CREATE TABLE IF NOT EXISTS tbitems (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      category TEXT NOT NULL,
+      price INTEGER NOT NULL,
+      owned BOOLEAN,
+      quality TEXT NOT NULL
+    );
+  `;
+  await db.execAsync(query);
+  await db.closeAsync();
+}
+
+export async function createItem(item: Item) {
+  const db = await getDbConnection();
+  const q = `INSERT INTO tbitems (id, name, category, price, owned, quality)
+             VALUES (?,?,?,?,?,?);`;
+  const res = await db.runAsync(q, [
+    item.id,
+    item.name,
+    item.category,
+    item.price,
+    item.owned ? 1 : 0,
+    item.quality
+  ]);
+  await db.closeAsync();
+  return res.changes === 1;
+}
+
+export async function readItem(): Promise<Item[]> {
+  const db = await getDbConnection();
+  const rows = await db.getAllAsync<{
     id: string;
     name: string;
     category: string;
     price: number;
-    owned: boolean;
-  }
-
-  const dbCx = await getDbConnection();
-  const registros = await dbCx.getAllAsync<ItemRow>('SELECT * FROM tbitems');
-  await dbCx.closeAsync();
-
-  return registros.map(registro => ({
-    id: registro.id,
-    name: registro.name,
-    category: registro.category,
-    price: registro.price,
-    owned: registro.owned
+    owned: number;
+    quality: Quality;
+  }>('SELECT * FROM tbitems;');
+  await db.closeAsync();
+  return rows.map(r => ({
+    id: r.id,
+    name: r.name,
+    category: r.category,
+    price: r.price,
+    owned: !!r.owned,
+    quality: r.quality
   }));
 }
 
-export async function updateItem(item: { 
-  id: string;
-  name: string;
-  category: string;
-  price: number;
-  owned: boolean;
-}, connection?: SQLite.SQLiteDatabase) {
-  const dbCx = connection || await getDbConnection();
-  const query = 'UPDATE tbitems SET name=?, category=?, price=?, owned=? WHERE id=?';
-  const result = await dbCx.runAsync(query, [item.name, item.category, item.price, item.owned, item.id]);
-  
-  if (!connection) {
-    await dbCx.closeAsync();
-  }
-  return result.changes === 1;
+export async function updateItem(item: Item) {
+  const db = await getDbConnection();
+  const q = `UPDATE tbitems SET name=?, category=?, price=?, owned=?, quality=? WHERE id=?;`;
+  const res = await db.runAsync(q, [
+    item.name,
+    item.category,
+    item.price,
+    item.owned ? 1 : 0,
+    item.quality,
+    item.id
+  ]);
+  await db.closeAsync();
+  return res.changes === 1;
 }
 
 export async function deleteItem(id: string) {
-  const dbCx = await getDbConnection();
-  const query = 'DELETE FROM tbitems WHERE id=?';
-  const result = await dbCx.runAsync(query, id);
-  await dbCx.closeAsync();
-  return result.changes === 1;    
+  const db = await getDbConnection();
+  const res = await db.runAsync('DELETE FROM tbitems WHERE id=?;', [id]);
+  await db.closeAsync();
+  return res.changes === 1;
 }
