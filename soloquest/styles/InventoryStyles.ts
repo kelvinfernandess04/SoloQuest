@@ -1,4 +1,3 @@
-// styles/InventoryStyles.ts
 import { StyleSheet } from 'react-native';
 
 export const CATEGORY_OPTIONS = ['Arma', 'Armadura', 'Acessório'];
