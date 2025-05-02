@@ -5,7 +5,6 @@ trigger:
 pool: DTTPool
 
 variables:
-  EXPO_TOKEN: $(EXPO_TOKEN)  # Variável secreta configurada no Azure
   BUILD_ARTIFACT_NAME: 'SoloQuest-$(Build.BuildId).apk'
 
 stages:
