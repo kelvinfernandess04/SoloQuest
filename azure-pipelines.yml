@@ -14,6 +14,7 @@ stages:
       - job: EAS_Build
         pool: DTTPool
         steps:
+
           # 1) Setup Node.js
           - task: NodeTool@0
             inputs:
@@ -22,17 +23,21 @@ stages:
           # 2) Instalar EAS CLI
           - script: npm install -g eas-cli
             displayName: 'Instalar EAS CLI'
+            # O passo 'script' não possui 'shell' como propriedade válida :contentReference[oaicite:2]{index=2}
 
           # 3) Instalar dependências do projeto
           - script: npm install
             displayName: 'Instalar Dependências'
 
-          # 4) Gerar APK via EAS (build remoto)
+          # 4) Gerar APK via EAS (build remoto pelo EAS CLI)
           - script: |
               eas build --platform android --non-interactive --no-wait
             displayName: 'Gerar APK via EAS'
+            env:
+              # EXPO_TOKEN deve estar configurado como variável secreta no portal do Azure DevOps :contentReference[oaicite:3]{index=3}
+              EXPO_TOKEN: $(EXPO_TOKEN)
 
-          # 5) Instalar jq (para processar JSON)
+          # 5) Instalar jq no Windows (para processar JSON)
           - script: |
               curl -L -o jq.exe https://github.com/stedolan/jq/releases/download/jq-1.6/jq-win64.exe
               mkdir C:\jq
@@ -40,12 +45,17 @@ stages:
               setx PATH "%PATH%;C:\jq"
             displayName: 'Instalar jq no Windows'
 
-          # 6) Baixar APK gerado usando Bash para capturar BUILD_ID
-          - script: |
-              BUILD_ID=$(eas build:list --platform android --status finished --json | jq -r '.[0].id')
-              eas build:download $BUILD_ID --output $(Pipeline.Workspace)/$(BUILD_ARTIFACT_NAME)
+          # 6) Baixar APK gerado usando tarefa Bash@3 (permite script Bash inline)
+          - task: Bash@3
             displayName: 'Baixar APK Gerado'
-            shell: bash
+            inputs:
+              targetType: 'inline'
+              script: |
+                BUILD_ID=$(eas build:list --platform android --status finished --json | jq -r '.[0].id')
+                eas build:download $BUILD_ID --output $(Pipeline.Workspace)/$(BUILD_ARTIFACT_NAME)
+            env:
+              # A Bash task no Windows ainda respeita variáveis de ambiente definidas no portal :contentReference[oaicite:4]{index=4}
+              EXPO_TOKEN: $(EXPO_TOKEN)
 
           # 7) Publicar artefato
           - task: PublishBuildArtifacts@1
