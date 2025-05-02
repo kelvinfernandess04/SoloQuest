@@ -27,9 +27,9 @@ stages:
           - script: npm install
             displayName: 'Instalar Dependências'
 
-          # 4) Gerar APK via EAS (usa %EXPO_TOKEN% automaticamente)
+          # 4) Gerar APK via EAS (build remoto; EXPO_TOKEN injetado como env var)
           - script: |
-              eas build --platform android --non-interactive --no-wait --local-build --token %EXPO_TOKEN%
+              eas build --platform android --non-interactive --no-wait
             displayName: 'Gerar APK via EAS'
 
           # 5) Instalar jq (para processar JSON)
