@@ -65,10 +65,10 @@ stages:
 - stage: Deploy_Prod
   displayName: 'Deploy para Prod'
   dependsOn: Build
-  condition: eq(variables['Build.SourceBranch'], 'refs/heads/master')  # Condição para master
+  condition: eq(variables['Build.SourceBranch'], 'refs/heads/master')
   jobs:
   - deployment: Deploy_Prod
-    environment: Production
+    environment: Production  # Nome deve ser IDÊNTICO ao criado no Azure!
     strategy:
       rolling:
         maxParallel: 2
