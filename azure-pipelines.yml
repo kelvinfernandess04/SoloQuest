@@ -27,7 +27,7 @@ stages:
           - script: npm install
             displayName: 'Instalar Dependências'
 
-          # 4) Gerar APK via EAS (build remoto; EXPO_TOKEN injetado como env var)
+          # 4) Gerar APK via EAS (build remoto)
           - script: |
               eas build --platform android --non-interactive --no-wait
             displayName: 'Gerar APK via EAS'
@@ -40,11 +40,12 @@ stages:
               setx PATH "%PATH%;C:\jq"
             displayName: 'Instalar jq no Windows'
 
-          # 6) Baixar APK gerado
+          # 6) Baixar APK gerado usando Bash para capturar BUILD_ID
           - script: |
               BUILD_ID=$(eas build:list --platform android --status finished --json | jq -r '.[0].id')
-              eas build:download %BUILD_ID% --output $(Pipeline.Workspace)/$(BUILD_ARTIFACT_NAME)
+              eas build:download $BUILD_ID --output $(Pipeline.Workspace)/$(BUILD_ARTIFACT_NAME)
             displayName: 'Baixar APK Gerado'
+            shell: bash
 
           # 7) Publicar artefato
           - task: PublishBuildArtifacts@1
