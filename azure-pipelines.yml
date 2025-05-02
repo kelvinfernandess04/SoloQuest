@@ -1,35 +1,59 @@
 trigger:
   branches:
-    include: [develop, qa, master]  # Branches atualizados
+    include: [develop, qa, master]
 
 pool: DTTPool
 
+variables:
+  EXPO_TOKEN: $(EXPO_TOKEN)  # Variável secreta configurada no Azure
+  BUILD_ARTIFACT_NAME: 'SoloQuest-$(Build.BuildId).apk'
+
 stages:
 - stage: Build
-  displayName: 'Build do App'
+  displayName: 'Build via EAS'
   jobs:
-  - job: Build_Job
+  - job: EAS_Build
     steps:
     - task: NodeTool@0
       inputs:
-        versionSpec: '18.x'
+        versionSpec: '22.x'
+    
+    - script: npm install -g eas-cli
+      displayName: 'Instalar EAS CLI'
     
     - script: npm install
       displayName: 'Instalar Dependências'
     
-    - script: npm run android
-      displayName: 'Build Android'
+    - script: eas login --token $(EXPO_TOKEN)
+      displayName: 'Autenticar no EAS'
+      env:
+        EXPO_TOKEN: $(EXPO_TOKEN)
+    
+    - script: eas build --platform android --non-interactive --no-wait --local-build
+      displayName: 'Gerar APK via EAS'
+    
+    - script: |
+        # Instalar jq para Windows (pré-requisito nos agents)
+        curl -L -o jq.exe https://github.com/stedolan/jq/releases/download/jq-1.6/jq-win64.exe
+        mkdir C:\jq
+        move jq.exe C:\jq
+        setx PATH "%PATH%;C:\jq"
+    
+    - script: |
+        BUILD_ID=$(eas build:list --platform android --status finished --json | jq -r '.[0].id')
+        eas build:download %BUILD_ID% --output $(Pipeline.Workspace)/$(BUILD_ARTIFACT_NAME)
+      displayName: 'Baixar APK Gerado'
     
     - task: PublishBuildArtifacts@1
       inputs:
-        PathtoPublish: '$(System.DefaultWorkingDirectory)/android/app/build/outputs/apk'
+        PathtoPublish: '$(Pipeline.Workspace)/$(BUILD_ARTIFACT_NAME)'
         ArtifactName: 'SoloQuestBuild'
         publishLocation: 'Container'
 
 - stage: Deploy_Develop
   displayName: 'Deploy para Develop'
   dependsOn: Build
-  condition: eq(variables['Build.SourceBranch'], 'refs/heads/develop')  # Condição para develop
+  condition: eq(variables['Build.SourceBranch'], 'refs/heads/develop')
   jobs:
   - job: Deploy_Develop
     steps:
@@ -37,17 +61,14 @@ stages:
       artifact: SoloQuestBuild
     
     - script: |
-        echo "Criando pasta de destino se não existir..."
-        mkdir "C:\Deploy\SoloQuest\Develop" || echo "Pasta já existe"
-        
-        echo "Copiando APK..."
-        xcopy /Y "$(Pipeline.Workspace)\SoloQuestBuild\*" "C:\Deploy\SoloQuest\Develop"
-      displayName: 'Copiar para Develop'
+        mkdir "C:\Deploy\SoloQuest\Develop" 2>nul || echo "Pasta já existe"
+        xcopy /Y "$(Pipeline.Workspace)\SoloQuestBuild\$(BUILD_ARTIFACT_NAME)" "C:\Deploy\SoloQuest\Develop"
+      displayName: 'Instalar em Develop'
 
 - stage: Deploy_QA
   displayName: 'Deploy para QA'
   dependsOn: Build
-  condition: eq(variables['Build.SourceBranch'], 'refs/heads/qa')  # Condição para QA
+  condition: eq(variables['Build.SourceBranch'], 'refs/heads/qa')
   jobs:
   - job: Deploy_QA
     steps:
@@ -55,12 +76,9 @@ stages:
       artifact: SoloQuestBuild
     
     - script: |
-        echo "Criando pasta de destino se não existir..."
-        mkdir "C:\Deploy\SoloQuest\QA" || echo "Pasta já existe"
-        
-        echo "Copiando APK..."
-        xcopy /Y "$(Pipeline.Workspace)\SoloQuestBuild\*" "C:\Deploy\SoloQuest\QA"
-      displayName: 'Copiar para QA'
+        mkdir "C:\Deploy\SoloQuest\QA" 2>nul || echo "Pasta já existe"
+        xcopy /Y "$(Pipeline.Workspace)\SoloQuestBuild\$(BUILD_ARTIFACT_NAME)" "C:\Deploy\SoloQuest\QA"
+      displayName: 'Instalar em QA'
 
 - stage: Deploy_Prod
   displayName: 'Deploy para Prod'
@@ -68,7 +86,7 @@ stages:
   condition: eq(variables['Build.SourceBranch'], 'refs/heads/master')
   jobs:
   - deployment: Deploy_Prod
-    environment: Production  # Nome deve ser IDÊNTICO ao criado no Azure!
+    environment: Production
     strategy:
       rolling:
         maxParallel: 2
@@ -78,9 +96,6 @@ stages:
             artifact: SoloQuestBuild
           
           - script: |
-              echo "Criando pasta de destino se não existir..."
-              mkdir "C:\Deploy\SoloQuest\Production" || echo "Pasta já existe"
-              
-              echo "Copiando APK..."
-              xcopy /Y "$(Pipeline.Workspace)\SoloQuestBuild\*" "C:\Deploy\SoloQuest\Production"
-            displayName: 'Copiar para Prod'
+              mkdir "C:\Deploy\SoloQuest\Production" 2>nul || echo "Pasta já existe"
+              xcopy /Y "$(Pipeline.Workspace)\SoloQuestBuild\$(BUILD_ARTIFACT_NAME)" "C:\Deploy\SoloQuest\Production"
+            displayName: 'Instalar em Prod'

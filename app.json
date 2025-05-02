@@ -21,7 +21,8 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.kelvin.fernandess04.SoloQuest"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -29,6 +30,15 @@
     "plugins": [
       "expo-sqlite",
       "expo-router"
-    ]
+    ],
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "9b66e1ab-9426-4e92-a7a3-b70fcb71a793"
+      }
+    },
+    "owner": "kelvin.fernandess04"
   }
 }
