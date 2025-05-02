@@ -12,24 +12,20 @@ stages:
   displayName: 'Build via EAS'
   jobs:
   - job: EAS_Build
+    pool: DTTPool
+    env:
+      EXPO_TOKEN: $(EXPO_TOKEN)   
     steps:
     - task: NodeTool@0
       inputs:
         versionSpec: '22.x'
-    
     - script: npm install -g eas-cli
       displayName: 'Instalar EAS CLI'
-    
     - script: npm install
       displayName: 'Instalar Dependências'
-    
-    - script: eas login --token $(EXPO_TOKEN)
-      displayName: 'Autenticar no EAS'
-      env:
-        EXPO_TOKEN: $(EXPO_TOKEN)
-    
     - script: eas build --platform android --non-interactive --no-wait --local-build
       displayName: 'Gerar APK via EAS'
+
     
     - script: |
         # Instalar jq para Windows (pré-requisito nos agents)
