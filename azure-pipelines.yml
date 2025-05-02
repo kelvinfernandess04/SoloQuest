@@ -13,8 +13,8 @@ stages:
   jobs:
   - job: EAS_Build
     pool: DTTPool
-    env:
-      EXPO_TOKEN: $(EXPO_TOKEN)   
+    variables:
+      EXPO_TOKEN: $(EXPO_TOKEN)    # variável de job
     steps:
     - task: NodeTool@0
       inputs:
@@ -25,6 +25,8 @@ stages:
       displayName: 'Instalar Dependências'
     - script: eas build --platform android --non-interactive --no-wait --local-build
       displayName: 'Gerar APK via EAS'
+    # …
+
 
     
     - script: |
