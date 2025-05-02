@@ -1,59 +1,86 @@
-# Conecta o variable group SoloQuest contendo EXPO_TOKEN
-variables:
-- group: SoloQuest                                # variável EXPO_TOKEN está neste grupo 
-
 trigger:
   branches:
-    include:
-      - develop                                   # CI em pushes para develop 
-      - qa                                        # CI em pushes para qa 
-      - master                                    # CI em pushes para master
+    include: [develop, qa, master]  # Branches atualizados
 
-pool:
-  vmImage: 'ubuntu-latest'                        # agente Microsoft-hosted 
+pool: DTTPool
 
 stages:
 - stage: Build
-  displayName: Build APK
+  displayName: 'Build do App'
   jobs:
-  - job: BuildJob
-    displayName: 'Build APK Android'
+  - job: Build_Job
     steps:
-    - task: NodeTool@0                            # instala Node.js via NodeTool@0 
+    - task: NodeTool@0
       inputs:
-        versionSource: 'spec'
-        versionSpec: '22.x'
-        checkLatest: true
-
-    - script: npm ci                              # instala dependências de forma determinística 
-      displayName: 'Install dependencies'
-
-    - script: npx eas-cli build --platform android --non-interactive --wait
-      env:
-        EXPO_TOKEN: $(EXPO_TOKEN)                 # usa EXPO_TOKEN do variable group (sem expo login) 
-      displayName: 'Run EAS Android build'
-
-    - task: PublishPipelineArtifact@1              # publica o build como pipeline artifact 
+        versionSpec: '18.x'
+    
+    - script: npm install
+      displayName: 'Instalar Dependências'
+    
+    - script: npm run android
+      displayName: 'Build Android'
+    
+    - task: PublishBuildArtifacts@1
       inputs:
-        targetPath: '$(Pipeline.Workspace)/build'
-        artifact: 'apk'
-        publishLocation: 'pipeline'
+        PathtoPublish: '$(System.DefaultWorkingDirectory)/android/app/build/outputs/apk'
+        ArtifactName: 'SoloQuestBuild'
+        publishLocation: 'Container'
 
-- stage: Deploy
-  displayName: Deploy APK
+- stage: Deploy_Develop
+  displayName: 'Deploy para Develop'
   dependsOn: Build
+  condition: eq(variables['Build.SourceBranch'], 'refs/heads/develop')  # Condição para develop
   jobs:
-  - deployment: DeployJob
-    displayName: 'Deploy to KELVINNOTE'
-    environment: KELVINNOTE                       # Environment criado em Pipelines → Environments 
-    pool:
-      name: Default                               # seu agente self-hosted :contentReference[oaicite:8]{index=8}
+  - job: Deploy_Develop
+    steps:
+    - download: current
+      artifact: SoloQuestBuild
+    
+    - script: |
+        echo "Criando pasta de destino se não existir..."
+        mkdir "C:\Deploy\SoloQuest\Develop" || echo "Pasta já existe"
+        
+        echo "Copiando APK..."
+        xcopy /Y "$(Pipeline.Workspace)\SoloQuestBuild\*" "C:\Deploy\SoloQuest\Develop"
+      displayName: 'Copiar para Develop'
+
+- stage: Deploy_QA
+  displayName: 'Deploy para QA'
+  dependsOn: Build
+  condition: eq(variables['Build.SourceBranch'], 'refs/heads/qa')  # Condição para QA
+  jobs:
+  - job: Deploy_QA
+    steps:
+    - download: current
+      artifact: SoloQuestBuild
+    
+    - script: |
+        echo "Criando pasta de destino se não existir..."
+        mkdir "C:\Deploy\SoloQuest\QA" || echo "Pasta já existe"
+        
+        echo "Copiando APK..."
+        xcopy /Y "$(Pipeline.Workspace)\SoloQuestBuild\*" "C:\Deploy\SoloQuest\QA"
+      displayName: 'Copiar para QA'
+
+- stage: Deploy_Prod
+  displayName: 'Deploy para Prod'
+  dependsOn: Build
+  condition: eq(variables['Build.SourceBranch'], 'refs/heads/master')  # Condição para master
+  jobs:
+  - deployment: Deploy_Prod
+    environment: Production
     strategy:
-      runOnce:
+      rolling:
+        maxParallel: 2
         deploy:
           steps:
-          - download: current                    # baixa o artifact “apk” 
+          - download: current
+            artifact: SoloQuestBuild
+          
           - script: |
-              cp $(Pipeline.Workspace)/apk/*.apk C:/Users/kelvi/DevTools/Repositórios/SoloQuest/apks/SoloQuest.apk
-              echo "APK copiado para pasta de testes"
-            displayName: 'Copy APK to local folder'
+              echo "Criando pasta de destino se não existir..."
+              mkdir "C:\Deploy\SoloQuest\Production" || echo "Pasta já existe"
+              
+              echo "Copiando APK..."
+              xcopy /Y "$(Pipeline.Workspace)\SoloQuestBuild\*" "C:\Deploy\SoloQuest\Production"
+            displayName: 'Copiar para Prod'
